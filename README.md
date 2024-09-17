@@ -17,7 +17,7 @@ This way you can also ensure, that there is nothing fishy about it, other than t
 ### Shortcuts for days
 
 #### Frequently used views
-Enable/disable all the following shortcuts to be added to the bottom of the sidebar
+Enable/disable any of the following shortcuts to be added to the bottom of the sidebar
 - Open the current view in a number of different stages (DEV, QA, PROD, etc.) (Same or New Tab)
 - Credentials (Same or New Tab)
 - Monitoring (Same or New Tab)
@@ -27,7 +27,7 @@ Enable/disable all the following shortcuts to be added to the bottom of the side
 - JMS Queues (Same or New Tab)
 - Connectivity Test (Same or New Tab)
 - **TBD** Check the existing artifacts against configurable conventions *(Need to check if this is feaasible)*
-- 
+
 #### Designtime artifacts and APIs
 To be continued
 
