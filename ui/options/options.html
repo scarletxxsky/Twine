@@ -1,0 +1,131 @@
+<html>
+<head>
+    <meta content="width=device-width, height=device-height, initial-scale=1.0" name="viewport">
+    <meta charset="UTF-8">
+    <script charset="utf-8" src="options.js"></script>
+    <script charset="utf-8" src="../../util/chromeStorage.js"></script>
+    <link href="../reset.css" rel="stylesheet">
+    <link href="../w3.css" rel="stylesheet">
+    <link href="options.css" rel="stylesheet">
+    <title>Twine Configuration</title>
+</head>
+<body>
+<div class="w3-container">
+    <div class="w3-panel" id="ISOptions">
+        <div class="w3-row">
+            <div class="w3-half w3-padding-16" id="row-1-col-1">
+                <div id="ISQuickAccess_Container">
+                    <input id="ISQuickAccess" type="checkbox" disabled>
+                    <label for="ISQuickAccess">Quickaccess</label>
+                    <div style="margin-left: 2vw">
+                        <div class="ISQuickAccess_Feature">
+                            <input disabled id="ISQuickAccess_Monitoring" type="checkbox">
+                            <label for="ISQuickAccess_Monitoring">Monitoring</label>
+                        </div>
+                        <div class="ISQuickAccess_Feature">
+                            <input disabled id="ISQuickAccess_SecurityMaterials" type="checkbox">
+                            <label for="ISQuickAccess_SecurityMaterials">Security Materials</label>
+                        </div>
+                        <div class="ISQuickAccess_Feature">
+                            <input disabled id="ISQuickAccess_Datastores" type="checkbox">
+                            <label for="ISQuickAccess_Datastores">Datastores</label>
+                        </div>
+                        <div class="ISQuickAccess_Feature">
+                            <input disabled id="ISQuickAccess_Queues" type="checkbox">
+                            <label for="ISQuickAccess_Queues">JMS Queues</label>
+                        </div>
+                        <div class="ISQuickAccess_Feature">
+                            <input disabled id="ISQuickAccess_StageSwitch" type="checkbox">
+                            <label for="ISQuickAccess_StageSwitch">Environment Switch</label>
+                        </div>
+                        <div class="ISQuickAccess_Feature">
+                            <input disabled id="ISQuickAccess_ConnectivityTest" type="checkbox">
+                            <label for="ISQuickAccess_ConnectivityTest">Connectivity Test</label>
+                        </div>
+                        <div class="ISQuickAccess_Feature">
+                            <input disabled id="ISQuickAccess_Certificates" type="checkbox">
+                            <label for="ISQuickAccess_Certificates">Certificates</label>
+                        </div>
+                        <div class="ISQuickAccess_Feature">
+                            <input disabled id="ISQuickAccess_BreadcrumbUp" type="checkbox">
+                            <label for="ISQuickAccess_BreadcrumbUp">Go Up</label>
+                        </div>
+                        <div class="ISQuickAccess_Feature">
+                            <input disabled id="ISQuickAccess_CheckNamingConventions" type="checkbox">
+                            <label for="ISQuickAccess_CheckNamingConventions">Check Naming Conventions</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="w3-half w3-padding-16">
+                <div>
+                    <input id="ISContentQuickAccess" type="checkbox" disabled>
+                    <label for="ISContentQuickAccess">Integration Package List</label>
+                    <div style="margin-left: 2vw">
+                        <div class="ISContentQuickAccess_Feature">
+                            <input disabled id="ISContentQuickAccess_RadialMenu" type="checkbox">
+                            <label for="ISContentQuickAccess_RadialMenu">Radial Menu</label>
+                        </div>
+                        <div class="ISContentQuickAccess_Feature">
+                            <input disabled id="ISContentQuickAccess_ApplyNamingOnPackage" type="checkbox">
+                            <label for="ISContentQuickAccess_ApplyNamingOnPackage">Remove Prefix on Package</label>
+                        </div>
+                        <div class="ISContentQuickAccess_Feature">
+                            <input disabled id="ISContentQuickAccess_ApplyNamingOnArtifact" type="checkbox">
+                            <label for="ISContentQuickAccess_ApplyNamingOnArtifact">Remove Prefix on Artifact</label>
+                        </div>
+                        <div class="ISContentQuickAccess_Feature">
+                            <input disabled id="ISContentQuickAccess_ApplyNamingOnPackageFallback" type="checkbox">
+                            <label for="ISContentQuickAccess_ApplyNamingOnPackageFallback">Use Common Prefix Fallback</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="w3-row">
+            <div class="w3-half w3-padding-16">
+                <div>
+                    <input id="ISDocumentationRead" type="checkbox" disabled>
+                    <label for="ISDocumentationRead">Inline Documentation</label>
+                    <div style="margin-left: 2vw">
+                        <div class="ISDocumentationRead_Feature">
+                            <input disabled id="ISDocumentationRead_View" type="checkbox">
+                            <label for="ISDocumentationRead_View">Show artifact documentation</label>
+                        </div>
+                        <div class="ISDocumentationRead_Feature">
+                            <input disabled id="ISDocumentationRead_Edit" type="checkbox">
+                            <label for="ISDocumentationRead_Edit">Enable Editing</label>
+                        </div>
+                        <div class="ISDocumentationRead_Feature">
+                            <input disabled id="ISDocumentationRead_AISummary" type="checkbox">
+                            <label for="ISDocumentationRead_AISummary">AI Summary</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div>
+        <div class="w3-bar w3-bottom w3-padding" style="align-items: end">
+            <button id="function-reset" class="w3-button w3-black w3-round-large">Reset</button>
+            <button id="function-import" class="w3-button w3-black w3-round-large">Import</button>
+            <button id="function-export" class="w3-button w3-black w3-round-large">Export</button>
+            <button id="function-changeLog" class="w3-button w3-black w3-round-large">Change Log</button>
+        </div>
+    </div>
+
+    <div id="modal" class="w3-modal">
+        <div class="w3-modal-content" style="height: max-content">
+            <div id="modal-content" class="w3-container">
+                <span id="close-modal" class="w3-button w3-display-topright">&times;</span>
+                <h3 id="modal-title" class="w3-center"></h3>
+                <div id="modal-inner"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="snackbar"></div>
+</body>
+</html>

@@ -1,0 +1,210 @@
+{
+    "sap": {
+        "cloudStatus": {
+            "hideFunctional": true
+        },
+        "integrationSuite": {
+            "_enabled": true,
+            "cloudIntegration": {
+                "_enabled": true,
+                "documentation": {
+                    "__errorTolerance": "0 for reading documentation, 7 for editing",
+                    "_enabled": false,
+                    "aiSummary": false,
+                    "enableEditingDocumentation": false,
+                    "readDocumentation": true
+                },
+                "integrationContentQuickAccess": {
+                    "__errorTolerance": "ALL",
+                    "_enabled": true,
+                    "artifactColors": {
+                        "DataType": "#27A",
+                        "FunctionLibraries": "#270",
+                        "IFlow": "#22e",
+                        "ImportedArchives": "#5a5",
+                        "MessageMapping": "royalblue",
+                        "MessageType": "#A74",
+                        "OData Service": "#336",
+                        "Package": "#000D",
+                        "RESTAPIProvider": "#363",
+                        "ScriptCollection": "#990",
+                        "SOAPAPIProvider": "#633",
+                        "ValueMapping": "#909"
+                    },
+                    "settings": {
+                        "removePrefix": false
+                    },
+                    "radialMenu": {
+                        "mode": "CENTER"
+                    }
+                },
+                "mouseMapping": {
+                    "copy": {
+                        "left": 0,
+                        "other": 1,
+                        "right": 2
+                    },
+                    "default": {
+                        "left": 0,
+                        "other": 1,
+                        "right": 2
+                    },
+                    "deploy": {
+                        "left": 0,
+                        "other": 1,
+                        "right": 2
+                    },
+                    "directory": {
+                        "left": 0,
+                        "other": 1,
+                        "right": 2
+                    },
+                    "monitoring": {
+                        "left": 0,
+                        "other": 1,
+                        "right": 2
+                    },
+                    "open": {
+                        "left": 0,
+                        "other": 1,
+                        "right": 2
+                    },
+                    "unlock": {
+                        "left": 0,
+                        "other": 1,
+                        "right": 2
+                    },
+                    "fixedItem": {
+                        "left": 0,
+                        "other": 1,
+                        "right": 2
+                    }
+                },
+                "quickAccess": {
+                    "__errorTolerance": "ALL",
+                    "_enabled": true,
+                    "links": {
+                        "certificates": true,
+                        "checkNamingConventions": false,
+                        "connectivityTest": true,
+                        "credentials": true,
+                        "datastores": true,
+                        "locks": true,
+                        "monitoring": true,
+                        "queues": true,
+                        "stageSwitch": true
+                    }
+                },
+                "unlock": {
+                    "__errorTolerance": "4+",
+                    "_enabled": false
+                }
+            },
+            "decorations": {
+                "__errorTolerance": "ALL",
+                "_enabled": true,
+                "companyLogo": true,
+                "tenantStage": true
+            },
+            "environments": [
+                {
+                    "logo": "https://example.com/logo.svg",
+                    "owner": "Dummy Corp.",
+                    "tenants": [
+                        {
+                            "color": "#080",
+                            "errorTolerance": 4,
+                            "id": "dummycorp-devqa",
+                            "name": "Development / QA",
+                            "naming": {
+                                "Common": {
+                                    "Prefix": "^(?:(?:[A-Za-z]{1,3}\\d{1,4}_)?(?:[A-Za-z]{1,3}\\d{1,4}_))?",
+                                    "Replacement": ""
+                                },
+                                "Package": {
+                                    "Prefix": "^[A-Za-z]{1,3}\\d{1,4}_?",
+                                    "Replacement": ""
+                                }
+                            }
+                        },
+                        {
+                            "color": "#800",
+                            "errorTolerance": 0,
+                            "id": "dummycorp-prod",
+                            "name": "Production",
+                            "naming": {
+                                "Common": {
+                                    "Prefix": "^$",
+                                    "Replacement": ""
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "owner": "Test GmbH",
+                    "tenants": [
+                        {
+                            "color": "#080",
+                            "errorTolerance": 7,
+                            "id": "test-integration-devqa",
+                            "server": "us020-10",
+                            "name": "Development / QA"
+                        },
+                        {
+                            "color": "#800",
+                            "errorTolerance": 0,
+                            "id": "test-integration-prod",
+                            "server": "us010-10",
+                            "name": "Production"
+                        }
+                    ]
+                },
+                {
+                    "logo": "https://demo.com/logo.png",
+                    "owner": "Demo LLC",
+                    "tenants": [
+                        {
+                            "color": "#606",
+                            "errorTolerance": 7,
+                            "id": "demo-dqp",
+                            "name": "DEV - PRD",
+                            "naming": {
+                                "Common": {
+                                    "Prefix": "^(?:(?:[A-Za-z]{1,3}\\d{1,4}_)?(?:[A-Za-z]{1,3}\\d{1,4}_))?",
+                                    "Replacement": ""
+                                },
+                                "Package": {
+                                    "Prefix": "^[A-Za-z]{1,3}\\d{1,4}_?",
+                                    "Replacement": ""
+                                }
+                            }
+                        }
+                    ]
+                }
+            ],
+            "performanceMeasurement": {
+                "__errorTolerance": "ALL",
+                "_enabled": true,
+                "logLevel": 100,
+                "measureIntervalInSec": 30
+            },
+            "reminders": {
+                "__errorTolerance": "ALL",
+                "faultyTwineConfig": true,
+                "lockedArtifacts": false
+            },
+            "trialForceEnabled": true,
+            "trialTenantSettings": {
+                "color": "#404",
+                "errorTolerance": 7,
+                "name": "Trial"
+            },
+            "undefinedTenantSettings": {
+                "color": "#700",
+                "name": "Unknown"
+            }
+        }
+    },
+    "version": "2024.9.10.1"
+}
