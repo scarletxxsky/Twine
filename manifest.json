@@ -13,10 +13,12 @@
         "content/sap/is/fetch.js",
         "content/sap/is/core.js",
         "content/sap/is/ci/locationQuickAccess.js",
+        "content/sap/is/ci/secureMaterials.js",
         "content/sap/is/ci/integrationContentQuickAccess.js",
         "content/sap/is/ci/decoration.js",
         "content/sap/is/ci/unlock.js",
-        "content/sap/is/ci/documentation.js"
+        "content/sap/is/ci/documentation.js",
+        "util/chromeStorage.js"
       ],
       "css": [
         "util/ci.css",
@@ -45,7 +47,7 @@
     "webRequest",
     "clipboardWrite"
   ],
-  "version": "2024.9.10.1",
+  "version": "12024.11.13.2",
   "icons": {
     "16": "images/logo/logo-16.png",
     "32": "images/logo/logo-32.png",

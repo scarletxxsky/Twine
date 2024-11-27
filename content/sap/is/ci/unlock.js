@@ -37,7 +37,8 @@ function getUnlockButton() {
 }
 
 async function handlePackageLock() {
-    let packageId = window.location.pathname.split("?")[0].split("/").pop()
+    // Seems to cause problems due to the index of the save button when editing
+    /*let packageId = window.location.pathname.split("?")[0].split("/").pop()
     if (!packageLockWaiting && locks.find(it => {
         return it.ArtifactId == packageId
     }) && getUnlockButton() == null) {
@@ -117,6 +118,7 @@ async function handlePackageLock() {
                     })
                     popoverLayer.insertAdjacentElement("beforeend", dialog)
 
+                    popoverLayerBlocker.style.zIndex = "50"
                     popoverLayerBlocker.style.visibility = "visible"
                     popoverLayerBlocker.style.display = "block"
                 })
@@ -125,11 +127,12 @@ async function handlePackageLock() {
             elapsedTime += window.performance.now() - runStart
         })
         elapsedTime += window.performance.now() - runStart
-    }
+    }*/
 }
 
 async function handleArtifactLock() {
-    let artifactId = window.location.pathname.split("?")[0].split("/").pop()
+    // Seems to cause problems due to the index of the save button when editing
+    /*let artifactId = window.location.pathname.split("?")[0].split("/").pop()
     let artifactType = window.location.pathname.split("?")[0].split("/").at(-2)
     if (!packageLockWaiting && locks.find(it => {
         return it.ArtifactId == artifactId
@@ -170,10 +173,11 @@ async function handleArtifactLock() {
             }
         })
         elapsedTime += window.performance.now() - runStart
-    }
+    }*/
 }
 
 async function handleArtifactLocks() {
+    // Seems to cause problems due to the index of the save button when editing
     if (!artifactLockWaiting) {
         artifactLockWaiting = true
         waitForElement("table:has(tbody[id*='--artifactTable-'] > tr > td[aria-colindex='6']):has(div[id*='artifactTable-']) > tbody").then((element) => {
@@ -282,6 +286,7 @@ function createUnlockButton(lock, id) {
         })
         popoverLayer.insertAdjacentElement("beforeend", dialog)
 
+        popoverLayerBlocker.style.zIndex = "50"
         popoverLayerBlocker.style.visibility = "visible"
         popoverLayerBlocker.style.display = "block"
     })
@@ -310,6 +315,7 @@ async function createLockReminder() {
 }
 
 async function fetchLocks(parameters) {
+    setLocksBusy(true)
     return new Promise((resolve, reject) => {
         if (checkErrorTolerance(4) && checkCloudIntegrationFeature("unlock")) {
             function process(fetchedLocks, fromCache, forceRefresh) {
@@ -342,6 +348,9 @@ async function fetchLocks(parameters) {
                     case 500:
                         createToast({message: `Error while updating locks.<br>Your session may have expired`})
                         break
+                    case 403:
+                        createToast({message: `Error while updating locks.<br>You don't have the permission to view locks`})
+                        break
                     case -1:
                         createToast({message: `Request for locks timed out<br>Please try to refresh locks manually`})
                         break
@@ -349,6 +358,7 @@ async function fetchLocks(parameters) {
                         createToast({message: `An unhandled error occurred during lock request<br>Please try to refresh locks manually`})
                         break
                 }
+                setLocksBusy(false, error.reason)
                 reject(false)
             }
 
@@ -363,6 +373,7 @@ async function fetchLocks(parameters) {
                     default:
                         error("Invalid service worker response: " + response.reason)
                         lockRequestStarted = false
+                        setLocksBusy(false, error.reason)
                         reject(false)
                         return
                 }
@@ -370,7 +381,7 @@ async function fetchLocks(parameters) {
             }
 
             function requestServerLocks(forceRefresh) {
-                callXHR("GET", `https://${window.location.host}/odata/api/v1/IntegrationDesigntimeLocks?$format=json`, null, "*/*", true, {timeout: 20000})
+                callXHR("GET", `https://${window.location.host}/odata/api/v1/IntegrationDesigntimeLocks?$format=json`, null, "*/*", true, {timeout: 25000})
                     .then(response => {
                         process(JSON.parse(response).d.results, false, forceRefresh)
                     }).catch(error => {
@@ -454,12 +465,19 @@ async function updateIntegrationContentLocks() {
                         domReference  = packageTrunk.childArtifacts.find(it => it.meta.packageId === lock.PackageId)
                             .flatList()
                             .find(it => {
+                                if (lock.artifactId == "PR043_API001_REST_Call") {
+                                }
                                 return it.meta.artifactId == lock.ArtifactId &&
                                     getTypeConversion("type", "lockType", it.meta.twineContextType) === lock.ArtifactType
                             })
                     }
 
-                    domReference.setLock(lock)
+                    try {
+                        domReference.setLock(lock)
+                    } catch (e) {
+                        //TODO: For some reason certain artifacts can't be found (Happened with REST API). Due to no error handling the rest of the locks can than not be assigned/searched for
+                        //throw new Error()
+                    }
                 })
             }
             if (!integrationContentQuickAccessReady) {
@@ -487,7 +505,19 @@ async function updateIntegrationContentLocks() {
 
 function updateLockCount() {
     let quickLinkLocks = document.getElementById("__twine_FooterListElement_Locks")
-    if (quickLinkLocks != null) quickLinkLocks.querySelector("div > a > span:nth-of-type(2)").innerText = `Locks (${locks.length})`
+    if (quickLinkLocks != null) quickLinkLocks.querySelector("div > a > span:nth-of-type(2)").innerHTML = `Locks (${locks.length})`
+}
+
+function setLocksBusy(busy, message) {
+    let quickLinkLocks = document.getElementById("__twine_FooterListElement_Locks")
+    if (quickLinkLocks != null) {
+        if (busy) {
+            quickLinkLocks.querySelector("div > a > span:nth-of-type(2)").innerHTML = `Locks (<div class="sapMBusyIndicator" style="display: inline-block"><span tabindex="0" class="sapUiBlockLayerTabbable"></span><div class="sapMBusyIndicatorBusyArea sapUiLocalBusy" style="position: relative;"><div class="sapUiBlockLayer  sapUiLocalBusyIndicator sapUiLocalBusyIndicatorSizeMedium sapUiLocalBusyIndicatorFade" alt="" tabindex="0" title="Please wait"><div class="sapUiLocalBusyIndicatorAnimation sapUiLocalBusyIndicatorAnimStandard"><div></div><div></div><div></div></div></div></div><span tabindex="0" class="sapUiBlockLayerTabbable"></span></div>)`
+        } else {
+            if (message) quickLinkLocks.querySelector("div > a > span:nth-of-type(2)").innerHTML = `Locks (${message})`
+            else quickLinkLocks.querySelector("div > a > span:nth-of-type(2)").innerHTML = `Locks`
+        }
+    }
 }
 
 async function onLockRemoved(lock) {
@@ -525,11 +555,12 @@ class Lock {
         this.CreatedBy = apiLock.CreatedBy
         this.CreatedAt = apiLock.CreatedAt
         this.ResourceId = apiLock.ResourceId
+        this.Owned = apiLock.CreatedBy == loggedInUser?.Name
     }
 
     tryRemove() {
         let dialog = new Dialog("Confirm Unlock")
-            .withContent(`<div style="padding: 0.75rem">Do you want to unlock ${getTypeConversion("lockType", "displayNameS", this.ArtifactType).toLowerCase()} <span style="color: ${getTypeConversion("lockType", "displayColor", this.ArtifactType)}"><b>${this.ArtifactName}</b></span>?</div>`)
+            .withContent(new SimpleElement(`<div style="padding: 0.75rem">Do you want to unlock ${getTypeConversion("lockType", "displayNameS", this.ArtifactType).toLowerCase()} <span style="color: ${getTypeConversion("lockType", "displayColor", this.ArtifactType)}"><b>${this.ArtifactName}</b></span>?</div>`))
             .withOptions([
                 new Button("Unlock", "NEGATIVE", null, false, false, true, () => {
                     callXHR("DELETE", `https://${window.location.host}/odata/api/v1/IntegrationDesigntimeLocks(ResourceId='${this.ResourceId}')`)
@@ -567,13 +598,13 @@ class Lock {
     }
 
     removeReferences() {
-        console.log(this.references)
         this.references.forEach(it =>
             it.onLockRemoved()
         )
     }
 
     getDereferenced() {
+        //Just drop unnecessary keys
         return {
             PackageId: this.PackageId,
             PackageName: this.PackageName,
@@ -585,4 +616,26 @@ class Lock {
             ResourceId: this.ResourceId
         }
     }
+}
+
+function removeUnlockButton() {
+    let parts = window.location.pathname.slice(1).split("/")
+    let [packageId, artifactId] = [parts[3], parts[5]]
+
+    let lock
+    if (artifactId) {
+        lock = locks.find(it => {
+            return it.PackageId == packageId && it.ArtifactId == artifactId
+        })
+    } else {
+        lock = locks.find(it => {
+            return it.PackageId == packageId && it.ArtifactId == packageId
+        })
+    }
+    let reference = lock.references.find(it => {
+        return it instanceof UnlockElementHelper
+    })
+    lock.references.splice(lock.references.indexOf(reference), 1)
+    reference.domInstance.remove()
+    reference = null
 }

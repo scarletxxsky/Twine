@@ -4,9 +4,7 @@
             "hideFunctional": true
         },
         "integrationSuite": {
-            "_enabled": true,
             "cloudIntegration": {
-                "_enabled": true,
                 "documentation": {
                     "__errorTolerance": "0 for reading documentation, 7 for editing",
                     "_enabled": false,

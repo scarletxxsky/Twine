@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twine Update</title>
+    <style>
+        * {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        ul {
+            padding-bottom: 1rem;
+        }
+
+        li {
+            padding-bottom: 0.3rem;
+        }
+    </style>
+</head>
+<body>
+<div style="margin: auto; left: 0; right: 0; max-width: 90%; justify-content: center">
+    <h1 style="text-align: center">Updates</h1>
+    <h2 style="text-align: center"><span style="color: darkred">Diese Version der Erweiterung wird nicht mehr offiziell weiterentwickelt/gewartet</span><br>Weitere Informationen finden sich in Confluence</h2>
+    <h2>2024.11.18</h2>
+    <ul style="text-align: left; font-size: 20px">
+        <li></li>
+        <li>
+            Einstellungen müssen nicht mehr per JSON geändert werden.
+            <br>
+            <div style="display: flex; align-items: center;">Wählt unten links in der Integration Suite <img src="https://i.postimg.cc/KY2fBQYW/settings.png" style="max-height: 2em"> aus, um die Einstellungen zu ändern.</div>
+            Das Schema der Einstellungen hat sich stellenweise geändert. Bei der "Migration" der Einstellungen wird eure alte Config sicherheitshalber automatisch in die Zwischenablage kopiert werden.<br>
+            Mouse Mappings funktionieren jetzt besser (hoffentlich).
+        </li>
+        <li>Der Tenant Tag einer Integration Suite funktioniert jetzt auch ohne Logo.</li>
+        <li>Eine geupdatete Anleitung für die Einstellungen und die Features sollte in den kommenden Wochen in der Knowledge Base landen.</li>
+    </ul>
+
+    <h2>2024.11.08</h2>
+    <ul style="text-align: left; font-size: 20px">
+        <li>Artefaktlisten auf Integration Suites mit EIC Artefakten sollten jetzt laden.</li>
+        <li>
+            Einstellungen müssen nicht mehr per JSON geändert werden.
+            <br>
+            <div style="display: flex; align-items: center;">Wählt unten links in der Integration Suite <img src="https://i.postimg.cc/KY2fBQYW/settings.png" style="max-height: 2em"> aus, um die Einstellungen zu ändern.</div>
+            Das Schema der Einstellungen hat sich stellenweise geändert. Bei der "Migration" der Einstellungen wird eure alte Config sicherheitshalber automatisch in die Zwischenablage kopiert werden.<br>
+            Mouse Mappings funktionieren jetzt besser (hoffentlich).
+        </li>
+        <li>Der Tenant Tag einer Integration Suite funktioniert jetzt auch ohne Logo.</li>
+        <li>Eine geupdatete Anleitung für die Einstellungen und die Features sollte in den kommenden Wochen in der Knowledge Base landen.</li>
+    </ul>
+
+    <h2>Ältere</h2>
+    <ul style="text-align: left; font-size: 20px">
+        <li>Artefaktlisten werden nun auch geladen, wenn das laden der API Proxies fehlschlägt.</li>
+        <li>Artefaktsuche auf Basis von Locks möglich.
+            <ul>
+                <li><i>:lock</i><br>Sucht alle Artefakte mit Locks.</li>
+                <li><i>:lock-me</i><br>Zeigt nur die Locks des angemeldeten Users.</li>
+                <li><i>:lock-<b>Suchbegriff</b></i><br>Zeigt nur die Locks der User, bei denen der Suchbegriff passt.</li>
+            </ul>
+        </li>
+        <li>Suche nach Artefakt/Paket per Muster<br>Ignoriert Groß-/Kleinschreibung. Bei der Suche werden Leerzeichen, Unterstriche, Bindestriche, runde und eckige Klammern in den Namen und IDs der Artefakte/Pakete ignoriert.<br>In der RegEx sollten diese also auch ausgelassen werden.
+            <ul>
+                <li><i>:rx-<b>Suchbegriff</b></i></li>
+                <li><i>:regex-<b>Suchbegriff</b></i></li>
+            </ul>
+        </li>
+    </ul>
+</div>
+</body>
+</html>

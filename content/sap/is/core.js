@@ -9,12 +9,15 @@ let popoverLayer = null, popoverLayerBlocker = null
 let loggedInUser = null
 let locks = [], lockRequestStarted = false
 let initialized = false
+let configVersion = "2024.10.22"
 
 let tenantVariables = {
     configuration: null,
     isTrial: false,
     globalEnvironment: null,
     currentTenantId: window.location.host.split(".integrationsuite")[0],
+    currentTenantSystem: window.location.host.split(".integrationsuite")[1].split(".cfapps")[0],
+    currentTenantDatacenter: window.location.host.split(".hana.ondemand")[0].split("cfapps.")[1],
     currentTenant: null,
     currentArtifact: {
         artifact: null,
@@ -26,7 +29,7 @@ let tenantVariables = {
 }
 
 chrome.runtime.sendMessage({type: "SAP_IS_CFG_REQUEST"}).then(message => {
-    init(message)
+    init(upgradeConfig(message.configuration))
 }).catch(() => {
     createToast()
 })
@@ -38,12 +41,8 @@ waitForId("sap-ui-static").then(element => {
     processToasts()
 })
 
-async function init(message) {
-    configuration = message.configuration
-    if (configuration?.sap?.integrationSuite?.cloudIntegration == null) {
-        let errors = validateConfig()
-        createToast({message: `You managed to import a faulty config or to delete the default one.<p><b>Congratulations!</b></p><br><p>These are the identified errors</p>${errors.join('<br>')}`})
-    }
+async function init(storedConfiguration) {
+    configuration = storedConfiguration
     await getCsrfToken()
 
     let artifactColors = configuration?.sap?.integrationSuite?.cloudIntegration?.integrationContentQuickAccess?.artifactColors
@@ -59,6 +58,72 @@ async function init(message) {
             displayColor: "#22e",
             priority: 0
         }, {
+            type: "default",
+            classType: SecureMaterialArtifact,
+            urlType: "",
+            lockType: "SecureMaterial",
+            operationsType: "SecureMaterial",
+            displayNameS: "User Credential",
+            displayNameP: "User Credentials",
+            symbol: "",
+            displayColor: "#22e",
+            priority: 0
+        },  {
+            type: "oauth2:default",
+            classType: SecureMaterialArtifact,
+            urlType: "",
+            lockType: "SecureMaterial",
+            operationsType: "SecureMaterial",
+            displayNameS: "OAuth Credential",
+            displayNameP: "OAuth Credentials",
+            symbol: "",
+            displayColor: "#22e",
+            priority: 1
+        },   {
+            type: "undefined",
+            classType: SecureMaterialArtifact,
+            urlType: "",
+            lockType: "SecureMaterial",
+            operationsType: "SecureMaterial",
+            displayNameS: "Other Credential",
+            displayNameP: "Other Credentials",
+            symbol: "",
+            displayColor: "#22e",
+            priority: 4
+        },   {
+            type: "secure_param",
+            classType: SecureMaterialArtifact,
+            urlType: "",
+            lockType: "SecureMaterial",
+            operationsType: "SecureMaterial",
+            displayNameS: "Secure Parameter",
+            displayNameP: "Secure Parameters",
+            symbol: "",
+            displayColor: "#22e",
+            priority: 2
+        },   {
+            type: "openconnectors",
+            classType: SecureMaterialArtifact,
+            urlType: "",
+            lockType: "SecureMaterial",
+            operationsType: "SecureMaterial",
+            displayNameS: "Open Connector Credential",
+            displayNameP: "Open Connector Credentials",
+            symbol: "",
+            displayColor: "#22e",
+            priority: 5
+        },    {
+            type: "authorization_code",
+            classType: SecureMaterialArtifact,
+            urlType: "",
+            lockType: "SecureMaterial",
+            operationsType: "SecureMaterial",
+            displayNameS: "OAuth Authorization Code",
+            displayNameP: "OAuth Authorization Codes",
+            symbol: "",
+            displayColor: "#22e",
+            priority: 3
+        }, {
             type: "Package",
             classType: Branch,
             urlType: "contentpackage",
@@ -67,7 +132,7 @@ async function init(message) {
             displayNameS: "Package",
             displayNameP: "Packages",
             symbol: "",
-            displayColor: "#000000DE",
+            displayColor: "#000000",
             priority: -1
         }, {
             type: "APIProxy",
@@ -78,7 +143,7 @@ async function init(message) {
             displayNameS: "API Proxy",
             displayNameP: "API Proxies",
             symbol: "",
-            displayColor: "#000000DE",
+            displayColor: "#000000",
             priority: -1
         }, {
             type: "MessageMapping",
@@ -222,6 +287,18 @@ async function init(message) {
             symbol: "",
             displayColor: "#444",
             priority: 11
+        },
+        {
+            type: "API",
+            classType: APIArtifact,
+            urlType: "N/A",
+            lockType: "N/A",
+            operationsType: "N/A",
+            displayNameS: "EIC API",
+            displayNameP: "EIC APIs",
+            symbol: "",
+            displayColor: "#f0f",
+            priority: 12
         }
     ]
     if (artifactColors) {
@@ -236,9 +313,6 @@ async function init(message) {
                 }
             } else brokenKeys.push(key)
         })
-
-        if (brokenKeys.length > 0)
-            createToast({message: `The following display colors for artifact types are unknown or invalid: <p>${brokenKeys.map(it => "<b>" + it + "</b>").join("<br>")}</p>Feel free to be annoyed by this message, until you fix your configuration`})
     }
 
     measureInterval = Math.min(Math.max(configuration?.sap?.integrationSuite?.performanceMeasurement?.measureIntervalInSec ?? 15, 15), 1800)
@@ -252,7 +326,7 @@ async function init(message) {
 
     chrome.runtime.onMessage.addListener((message, sender) => {
         let runStart = window.performance.now()
-
+        debug(message.type)
         switch (message.type) {
             case "SESSION_CHANGE":
                 switch (message.changeType) {
@@ -262,7 +336,9 @@ async function init(message) {
                         break
                 }
                 break
-            case "CONFIGURATION_CHANGE":
+            case "CONFIGURATION_CHANGED":
+                break
+            case "DESIGNTIME_ARTIFACTS_CHANGED":
                 break
             case "GENERAL_ONLOAD":
                 if (initialized) {
@@ -271,10 +347,10 @@ async function init(message) {
                     return
                 }
                 initialized = true
-                log(`Workflow started ${configuration != null ? "with" : "without" } configuration`)
                 tenantVariables.globalEnvironment = configuration?.sap?.integrationSuite?.environments?.find(environment => {
                     return environment.tenants.some(tenant => {
-                        if (tenant.id == getTenantId()) {
+                        debug(`${environment.owner} - ${tenant.id}: ID match ${tenant.id == getTenantId()}, System match ${tenant.system == getTenantSystem()}, Datacenter match ${tenant.datacenter == getTenantDatacenter()}, `)
+                        if (tenant.id == getTenantId() && tenant.system == getTenantSystem() && tenant.datacenter == getTenantDatacenter()) {
                             tenantVariables.currentTenant = tenant
                             return true
                         }
@@ -306,7 +382,7 @@ async function init(message) {
                     attributeFilter: ["class"]
                 });
 
-                if (checkCloudIntegrationFeature("quickAccess")) initializeQuicklinks(sidebarCollapsed)
+                initializeQuicklinks()
                 if (checkCloudIntegrationFeature("integrationContentQuickAccess")) initializeIntegrationContentQuicklinks()
                 if (checkIntegrationSuiteFeature("decorations")) initializeDecorations()
                 if (checkCloudIntegrationFeature("documentation")) initializeDocumentation()
@@ -329,6 +405,9 @@ async function init(message) {
             case "PACKAGE_ARTIFACTS_ONLOAD":
                 startHandleLocks()
                 break
+            case "ARTIFACT_EDIT":
+                removeUnlockButton()
+                break
             default:
                 break
         }
@@ -342,45 +421,13 @@ async function init(message) {
 function getFallbackEnvironment() {
     let environment = {
         owner: "Unknown",
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/SAP_2011_logo.svg/320px-SAP_2011_logo.svg.png",
+        logo: null,
         tenants: []
     }
-    if (configuration) {
-        if (getTenantId().length == 13 && getTenantId().endsWith("trial")) {
-            tenantVariables.isTrial = true
-            if (configuration.sap?.integrationSuite?.trialForceEnabled === true) {
-                environment.tenants.push({
-                    "color": "#808",
-                    "errorTolerance": 7,
-                    "name": "Trial",
-                    "forceEnable": true
-                })
-            } else if (configuration.sap?.integrationSuite?.trialTenantSettings) {
-                environment.tenants.push(configuration.sap.integrationSuite.trialTenantSettings)
-            } else if (configuration.sap?.integrationSuite?.undefinedTenantSettings) {
-                environment.tenants.push(configuration.sap.integrationSuite.undefinedTenantSettings)
-            } else {
-                environment.tenants.push({
-                    "color": "#800",
-                    "errorTolerance": 0,
-                    "name": "Trial"
-                })
-            }
-        } else if (configuration.sap?.integrationSuite?.undefinedTenantSettings) {
-            environment.tenants.push(configuration.sap.integrationSuite.undefinedTenantSettings)
-        } else {
-            environment.tenants.push({
-                "color": "#800",
-                "errorTolerance": 0,
-                "name": "Únknown"
-            })
-        }
-    } else {
-        environment.tenants.push({
-            "color": "#800",
-            "errorTolerance": 0,
-            "name": "Unknown"
-        })
+    if (getTenantId().length == 13 && getTenantId().endsWith("trial")) {
+        environment.tenants.push(configuration.sap.integrationSuite.trialTenantSettings)
+    } else if (configuration.sap?.integrationSuite?.undefinedTenantSettings) {
+        environment.tenants.push(configuration.sap.integrationSuite.undefinedTenantSettings)
     }
     tenantVariables.currentTenant = environment.tenants[0]
     return environment
@@ -395,6 +442,12 @@ function apiPortalUrl() {
 }
 function deepWorkspaceUrl() {
     return `https://${window.location.host}/api/1.0`
+}
+function publicTenantUrl() {
+    return `https://${/*TODO: ADD*/address}/api/v1`
+}
+function operationsUrl() {
+    return `https://${window.location.host}/Operations`
 }
 
 function checkErrorTolerance(level) {
@@ -433,11 +486,11 @@ function setTimedInterval(intervalFunction, interval) {
 }
 
 function checkIntegrationSuiteFeature(feature) {
-    return ((feature != null) ? configuration?.sap?.integrationSuite?.[feature]?._enabled === true : configuration?.sap?.integrationSuite?._enabled === true) || tenantVariables.currentTenant.forceEnable === true
+    return ((feature != null) ? configuration?.sap?.integrationSuite?.[feature]?.enabled === true : configuration?.sap?.integrationSuite?.enabled === true)
 }
 
 function checkCloudIntegrationFeature(feature) {
-    return ((feature != null) ? configuration?.sap?.integrationSuite?.cloudIntegration?.[feature]?._enabled === true : configuration?.sap?.integrationSuite?.cloudIntegration?._enabled === true) || tenantVariables.currentTenant.forceEnable === true
+    return ((feature != null) ? configuration?.sap?.integrationSuite?.cloudIntegration?.[feature]?.enabled === true : configuration?.sap?.integrationSuite?.cloudIntegration?.enabled === true)
 }
 
 function checkReminder(reminder) {
@@ -445,7 +498,7 @@ function checkReminder(reminder) {
 }
 
 function checkQuicklink(link) {
-    return (configuration?.sap?.integrationSuite?.cloudIntegration?.quickAccess?.links?.[link] === true) || tenantVariables.currentTenant.forceEnable === true
+    return (configuration?.sap?.integrationSuite?.cloudIntegration?.quickAccess?.links?.[link] === true)
 }
 
 function getTypeConversion(inType, outType, value, returnEntry) {
@@ -458,7 +511,7 @@ function getTypeConversion(inType, outType, value, returnEntry) {
 }
 
 function getRadialMode() {
-    return configuration?.sap?.integrationSuite?.cloudIntegration?.integrationContentQuickAccess?.radialMenu?.mode
+    return configuration?.sap?.integrationSuite?.cloudIntegration?.integrationContentQuickAccess?.radialMenu?.mode ?? "CENTER"
 }
 
 function getTenantColor() {
@@ -467,172 +520,208 @@ function getTenantColor() {
 function getTenantId() {
     return tenantVariables.currentTenantId
 }
+
+function getTenantOwner() {
+    return tenantVariables.globalEnvironment.owner
+}
+function getTenantDatacenter() {
+    return tenantVariables.currentTenantDatacenter
+}
+
+//Reads the system id from the current host
+//rcg-rcc-sandbox.integrationsuite-cpi026.cfapps.eu10-002.hana.ondemand.com
+function getTenantSystem() {
+    return tenantVariables.currentTenantSystem
+}
+
+//Reads the display name for the current tenant if configured
 function getTenantName() {
     return tenantVariables.currentTenant.name ?? "Unknown"
 }
 
-function validateConfig() {
-    let errors = []
-    if (Array.isArray(configuration)) {
-        errors.push("Your config is an array")
-    } else {
-        if (Object.keys(configuration).length === 0) {
-            errors.push("The config is completely empty")
-        } else {
-            if (configuration.sap?.integrationSuite?.cloudIntegration == null) errors.push("JSON Path <span style='color: #36a'>$.sap.integrationSuite.cloudIntegration</span> is empty")
+function upgradeConfig(config) {
+    if (config == null) {
+        log(`No config exists. Creating default config with version ${configVersion}`)
+        let defaultConfig = {
+            sap: {
+                cloudStatus: {
+                    hideFunctional: false
+                },
+                integrationSuite: {
+                    cloudIntegration: {
+                        integrationContentQuickAccess: {
+                            enabled: true,
+                            artifactColors: {},
+                            radialMenu: {
+                                mode: "CENTER"
+                            },
+                            settings: {
+                                removePrefix: false
+                            }
+                        },
+                        mouseMapping: {},
+                        quickAccess: {
+                            enabled:  true,
+                            links: {
+                                "certificates": true,
+                                "credentials": true,
+                                "queues": true,
+                                "monitoring": false,
+                                "datastores": true,
+                                "connectivityTest": false,
+                                "checkNamingConventions": false,
+                                "locks": false,
+                                "stageSwitch": true
+                            }
+                        },
+                        unlock: {
+                            enabled: false
+                        },
+                        documentation: {
+                            enabled: false,
+                            enableEditingDocumentation: false,
+                            aiSummary: false
+                        }
+                    },
+                    decorations: {
+                        enabled: true,
+                        tenantStage: true,
+                        companyLogo: true
+                    },
+                    environments: [],
+                    performanceMeasurement: {
+                        enabled: true,
+                        logLevel: 19,
+                        measureIntervalInSec: 60
+                    },
+                    reminders: {
+                        lockedArtifacts: false
+                    },
+                    undefinedTenantSettings: {
+                        "color": "#800",
+                        "errorTolerance": 0,
+                        "name": "Unknown",
+                        "id": "UNKNOWN/TENANT",
+                        "system": "-cpi999",
+                        "datacenter": "XY99-000"
+                    },
+                    trialTenantSettings: {
+                        "color": "#808",
+                        "errorTolerance": 7,
+                        "name": "Trial",
+                        "id": "TRIAL/TENANT",
+                        "system": "-cpi999",
+                        "datacenter": "XY99-000"
+                    }
+                }
+            },
+            version: configVersion,
+            isConfigured: true
         }
+        clipBoardCopy(JSON.stringify(config))
+        chrome.runtime.sendMessage({type: "SAP_IS_CFG_INIT", configuration: defaultConfig}).then(response => {
+            if (response.status < 0) {
+                createToast({message: "There was an error creating a configuration. Check the developer console for possible causes"})
+                console.error(response)
+            }
+        })
+        return defaultConfig
+    } else if (compareVersion(configVersion, config.version) > 0) {
+        log(`Migrating from config version ${config.version} to ${configVersion}`)
+        let enableKey = compareVersion(config.version, "2024.10.21") >= 0 ? "enabled" : "_enabled"
+        let migrated = {
+            sap: {
+                cloudStatus: {
+                    hideFunctional: config.sap?.cloudStatus?.hideFunctional ?? true
+                },
+                integrationSuite: {
+                    cloudIntegration: {
+                        integrationContentQuickAccess: {
+                            enabled: config.sap?.integrationSuite?.cloudIntegration?.integrationContentQuickAccess?.[enableKey] ?? true,
+                            artifactColors:
+                                Object.entries(config.sap?.integrationSuite?.cloudIntegration?.integrationContentQuickAccess?.artifactColors ?? {})
+                                    .reduce((a, v) => ({ ...a, [v[0]]: tryCoerceColor(v[1])}), {})
+                            ,
+                            radialMenu: {
+                                mode: config.sap?.integrationSuite?.cloudIntegration?.integrationContentQuickAccess?.radialMenu?.mode ?? "CENTER"
+                            },
+                            settings: {
+                                removePrefix: config.sap?.integrationSuite?.cloudIntegration?.integrationContentQuickAccess?.settings?.removePrefix ?? false
+                            }
+                        },
+                        mouseMapping: {},
+                        quickAccess: {
+                            enabled:  config.sap?.integrationSuite?.cloudIntegration?.quickAccess?.[enableKey] ?? true,
+                            links: {
+                                "certificates": config.sap?.integrationSuite?.cloudIntegration?.quickAccess?.links?.certificates ?? true,
+                                "credentials": config.sap?.integrationSuite?.cloudIntegration?.quickAccess?.links?.credentials ?? true,
+                                "queues": config.sap?.integrationSuite?.cloudIntegration?.quickAccess?.links?.queues ?? true,
+                                "monitoring": config.sap?.integrationSuite?.cloudIntegration?.quickAccess?.links?.monitoring ?? false,
+                                "datastores": config.sap?.integrationSuite?.cloudIntegration?.quickAccess?.links?.datastores ?? true,
+                                "connectivityTest": config.sap?.integrationSuite?.cloudIntegration?.quickAccess?.links?.connectivityTest ?? false,
+                                "checkNamingConventions": config.sap?.integrationSuite?.cloudIntegration?.quickAccess?.links?.checkNamingConventions ?? false,
+                                "locks": config.sap?.integrationSuite?.cloudIntegration?.quickAccess?.links?.locks ?? false,
+                                "stageSwitch": config.sap?.integrationSuite?.cloudIntegration?.quickAccess?.links?.stageSwitch ?? true
+                            }
+                        },
+                        unlock: {
+                            enabled: config.sap?.integrationSuite?.cloudIntegration?.unlock?.[enableKey] ?? false
+                        },
+                        documentation: {
+                            enabled: config.sap?.integrationSuite?.cloudIntegration?.documentation?.[enableKey] && config?.sap?.integrationSuite?.cloudIntegration?.documentation?.readDocumentation,
+                            enableEditingDocumentation: config.sap?.integrationSuite?.cloudIntegration?.documentation.enableEditingDocumentation ?? false,
+                            aiSummary: config.sap?.integrationSuite?.cloudIntegration?.documentation?.aiSummary ?? false
+                        }
+                    },
+                    decorations: {
+                        enabled: config.sap?.integrationSuite?.decorations?.[enableKey] ?? true,
+                        tenantStage: config.sap?.integrationSuite?.decorations?.tenantStage ?? true,
+                        companyLogo: config.sap?.integrationSuite?.decorations?.companyLogo ?? true
+                    },
+                    environments: config.sap?.integrationSuite?.environments ?? [],
+                    performanceMeasurement: {
+                        enabled: config.sap?.integrationSuite?.performanceMeasurement?.[enableKey] ?? true,
+                        logLevel: config.sap?.integrationSuite?.performanceMeasurement?.logLevel ?? 19,
+                        measureIntervalInSec: config.sap?.integrationSuite?.performanceMeasurement?.measureIntervalInSec ?? 60
+                    },
+                    reminders: {
+                        lockedArtifacts: config.sap?.integrationSuite?.reminders?.lockedArtifacts ?? false
+                    },
+                    undefinedTenantSettings: {
+                        "color": configuration?.sap?.integrationSuite?.undefinedTenantSettings?.color ?? "#800",
+                        "errorTolerance": configuration?.sap?.integrationSuite?.undefinedTenantSettings?.errorTolerance ?? 0,
+                        "name": "Unknown",
+                        "id": "UNKNOWN/TENANT",
+                        "system": "-cpi999",
+                        "datacenter": "XY99-000"
+                    },
+                    trialTenantSettings: {
+                        "color": configuration?.sap?.integrationSuite?.trialTenantSettings?.color ?? "#808",
+                        "errorTolerance": configuration?.sap?.integrationSuite?.trialTenantSettings?.errorTolerance ?? 7,
+                        "name": "Trial",
+                        "id": "TRIAL/TENANT",
+                        "system": "-cpi999",
+                        "datacenter": "XY99-000"
+                    }
+                }
+            },
+            version: configVersion,
+            migratedFrom: config?.version
+        }
+        clipBoardCopy(JSON.stringify(config))
+        chrome.runtime.sendMessage({type: "SAP_IS_CFG_MIGRATE", configuration: migrated}).then(response => {
+            if (response.status < 0) {
+                createToast({message: "There was an error while migrating to a newer configuration.<br>Your old configuration was copied to the clipboard"})
+                console.error(response)
+            } else {
+                createToast({message: "Your configuration was migrated to a newer version.<br>The old configuration was copied to the clipboard. Just in case"})
+            }
+        }).catch(e => {
+            console.error(e)
+        })
+        return migrated
+    } else {
+        info(`Starting with existing configuration`)
+        return config
     }
-    return errors
 }
-
-
-/*
-<div class="sapMDialog sapMDialog-CTX sapMPopup-CTX sapMMessageDialog sapUiShd sapUiUserSelectable sapMDialogOpen" style="position: absolute; visibility: visible; z-index: 70 !important; left: 5%; right: 5%; top: 5%; bottom: 5%; display: block; margin: auto !important;">
-                <span class="sapMDialogFirstFE"></span>
-                <header>
-                    <div class="sapMDialogTitleGroup">
-                        <div class="sapMIBar sapMIBar-CTX sapMBar sapMContent-CTX sapMBar-CTX sapMHeader-CTX sapMBarTitleAlignAuto">
-                            <div class="sapMBarLeft sapMBarContainer sapMBarEmpty"></div>
-                            <div class="sapMBarMiddle">
-                                <div class="sapMBarPH sapMBarContainer" style="width: 100%;">
-                                    <h1 class="sapMTitle sapMTitleStyleAuto sapMTitleNoWrap sapUiSelectable sapMTitleMaxWidth sapMDialogTitle sapMBarChild">
-                                        <span dir="auto">Tenant Configuration</span>
-                                    </h1>
-                                </div>
-                            </div>
-                            <div class="sapMBarRight sapMBarContainer sapMBarEmpty"></div>
-                        </div>
-                        <span class="sapUiInvisibleText"></span>
-                    </div>
-                </header>
-                <section class="sapMDialogSection sapUiScrollDelegate disableScrollbars" style="overflow: auto;">
-
-                <div class="sapMTabContainer sapUiResponsiveContentPadding sapUiResponsivePadding--header">
-                <div class="sapMTabStripContainer sapUi-Std-PaddingXL">
-                    <div class="sapMTabStrip sapContrastPlus">
-                        <div class="sapMTSLeftOverflowButtons"></div>
-                        <div class="sapMTSTabsContainer sapUiScrollDelegate" tabindex="0" style="overflow: hidden;">
-                            <div class="sapMTSTabs">
-                                <div class="sapMTabStripItem sapMTabStripItemSelected" tabindex="-1">
-                                    <div class="sapMTSTexts">
-                                        <div class="sapMTabStripItemAddText"></div>
-                                        <div class="sapMTabStripItemLabel">Development</div>
-                                    </div>
-                                    <div class="sapMTSItemCloseBtnCnt">
-                                        <button tabindex="-1" title="Close" class="sapMBtnBase sapMBtn sapMTabStripSelectListItemCloseBtn">
-                                            <span class="sapMBtnInner sapMBtnHoverable sapMFocusable sapMBtnIconFirst sapMBtnTransparent">
-                                                <span data-sap-ui-icon-content="" class="sapUiIcon sapUiIconMirrorInRTL sapMBtnCustomIcon sapMBtnIcon sapMBtnIconLeft" style="font-family: SAP-icons;"></span>
-                                            </span>
-                                            <span class="sapUiInvisibleText">Close</span>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="sapMTabStripItem sapMTabStripItemModified" tabindex="-1">
-                                    <div class="sapMTSTexts">
-                                        <div class="sapMTabStripItemAddText"></div>
-                                        <div class="sapMTabStripItemLabel">
-                                            Quality Assurance
-                                            <span class="sapMTabStripItemModifiedSymbol"></span>
-                                        </div>
-                                    </div>
-                                    <div class="sapMTSItemCloseBtnCnt">
-                                        <button tabindex="-1" title="Close" class="sapMBtnBase sapMBtn sapMTabStripSelectListItemCloseBtn">
-                                            <span class="sapMBtnInner sapMBtnHoverable sapMFocusable sapMBtnIconFirst sapMBtnTransparent">
-                                                <span data-sap-ui-icon-content="" class="sapUiIcon sapUiIconMirrorInRTL sapMBtnCustomIcon sapMBtnIcon sapMBtnIconLeft" style="font-family: SAP-icons;"></span>
-                                            </span>
-                                            <span class="sapUiInvisibleText">Close</span>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="sapMTabStripItem" tabindex="-1">
-                                    <div class="sapMTSTexts">
-                                        <div class="sapMTabStripItemAddText"></div>
-                                        <div class="sapMTabStripItemLabel">Production</div>
-                                    </div>
-                                    <div class="sapMTSItemCloseBtnCnt">
-                                        <button tabindex="-1" title="Close" class="sapMBtnBase sapMBtn sapMTabStripSelectListItemCloseBtn">
-                                            <span class="sapMBtnInner sapMBtnHoverable sapMFocusable sapMBtnIconFirst sapMBtnTransparent">
-                                                <span data-sap-ui-icon-content="" class="sapUiIcon sapUiIconMirrorInRTL sapMBtnCustomIcon sapMBtnIcon sapMBtnIconLeft" style="font-family: SAP-icons;"></span>
-                                            </span>
-                                            <span class="sapUiInvisibleText">Close</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="sapMTSRightOverflowButtons"></div>
-                        <div class="sapMTSTouchArea">
-                            <div tabindex="-1" class="sapMSlt sapMSltIconOnly sapMSltAutoAdjustedWidth sapMSltWithIcon sapMSltHoverable sapMSltWithArrow sapMTSOverflowSelect" style="max-width: 2.5rem;">
-                                <div tabindex="0" title="Opened Tabs" class="sapUiPseudoInvisibleText sapMSltHiddenSelect"></div>
-                                <input name="" value="" tabindex="-1" class="sapUiPseudoInvisibleText">
-                                <span title="Opened Tabs" class="sapMSltLabel sapUiPseudoInvisibleText"></span>
-                                <span data-sap-ui-icon-content="" title="Opened Tabs" class="sapMSltIcon sapUiIcon sapUiIconMirrorInRTL" style="font-family: SAP-icons;"></span>
-                            </div>
-                            <button title="Add New Tab" class="sapMBtnBase sapMBtn sapMTSAddNewTabBtn">
-                                <span class="sapMBtnInner sapMBtnHoverable sapMFocusable sapMBtnIconFirst sapMBtnTransparent">
-                                    <span data-sap-ui-icon-content="" class="sapUiIcon sapUiIconMirrorInRTL sapMBtnCustomIcon sapMBtnIcon sapMBtnIconLeft" style="font-family: SAP-icons;"></span>
-                                </span>
-                                <span class="sapUiInvisibleText">Add New Tab</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="sapMTabContainerContent sapMTabContainerContentList">
-                    <div class="sapMTabContainerInnerContent">
-                        <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
-                            <span class="sapMLabelTextWrapper">
-                                <bdi>Tenant URL:</bdi>
-                            </span>
-                            <span data-colon=":" class="sapMLabelColonAndRequired"></span>
-                        </span>
-                        <div class="sapMInputBase sapMInputBaseHeightMargin sapMInput" style="width: 100%;display: flex;justify-content: space-between;align-items: baseline;"><div class="sapMInputDescriptionWrapper" style="width: max-content;">
-                                <span class="sapMInputDescriptionText" style="padding-left: 0">https://</span>
-                            </div>
-                            <div class="sapMInputBaseContentWrapper" style="width: auto;">
-                                <input value="dummy-is-dev" type="text" autocomplete="off" class="sapMInputBaseInner">
-                            </div>
-                        <div class="sapMInputDescriptionWrapper" style="width: max-content;">
-                                <span class="sapMInputDescriptionText">.integrationsuite.cfapps.</span>
-                            </div><div class="sapMInputBaseContentWrapper" style="width: auto;">
-                                <input value="eu20-001" type="text" autocomplete="off" class="sapMInputBaseInner">
-                            </div><div class="sapMInputDescriptionWrapper" style="width: max-content;">
-                                <span class="sapMInputDescriptionText">.hana.ondemand.com</span>
-                            </div></div>
-                        <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
-                            <span class="sapMLabelTextWrapper">
-                                <bdi>Tenant Tag:</bdi>
-                            </span>
-                            <span data-colon=":" class="sapMLabelColonAndRequired"></span>
-                        </span>
-                        <div class="sapMInputBase sapMInputBaseHeightMargin sapMInput" style="width: 100%;">
-                            <div class="sapMInputBaseContentWrapper" style="width: 100%;">
-                                <input value="Doe" type="text" autocomplete="off" class="sapMInputBaseInner">
-                            </div>
-                        </div>
-                        <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
-                            <span class="sapMLabelTextWrapper">
-                                <bdi>Salary:</bdi>
-                            </span>
-                            <span data-colon=":" class="sapMLabelColonAndRequired"></span>
-                        </span>
-                        <div class="sapMInputBase sapMInputBaseHeightMargin sapMInput sapMInputWithDescription" style="width: 100%;">
-                            <div class="sapMInputBaseContentWrapper" style="width: 50%;">
-                                <input value="1455.22" type="text" autocomplete="off" class="sapMInputBaseInner">
-                            </div>
-                            <div class="sapMInputDescriptionWrapper" style="width: 20%;">
-                                <span class="sapMInputDescriptionText">EUR</span>
-                            </div>
-                        <div class="sapMInputBaseContentWrapper" style="width: 25%;">
-                                <input type="color" id="html5colorpicker" onchange="clickColor(0, -1, -1, 5)" value="#ff0000" style="width:100%;">
-                            </div></div>
-                    </div>
-                </div>
-            </div></section>
-                <footer class="sapMDialogFooter">
-                    <div class="sapMIBar sapMTBInactive sapMTB sapMTBNewFlex sapMTBStandard sapMTB-Auto-CTX sapMOTB sapMTBNoBorders sapMIBar-CTX sapMFooter-CTX">
-                        <div class="sapMTBSpacer sapMTBSpacerFlex sapMBarChild sapMBarChildFirstChild"></div>
-                    <button class="sapMBtnBase sapMBtn elementFadeIn sapMBarChild"><span class="sapMBtnInner sapMBtnHoverable sapMFocusable sapMBtnInverted sapMBtnText"><span class="sapMBtnContent"><div class="sapMBusyIndicator" style="display: none"><span tabindex="0" class="sapUiBlockLayerTabbable"></span><div class="sapMBusyIndicatorBusyArea sapUiLocalBusy" style="position: relative;"><div class="sapUiBlockLayer  sapUiLocalBusyIndicator sapUiLocalBusyIndicatorSizeMedium sapUiLocalBusyIndicatorFade" alt="" tabindex="0" title="Please wait"><div class="sapUiLocalBusyIndicatorAnimation sapUiLocalBusyIndicatorAnimStandard"><div></div><div></div><div></div></div></div></div><span tabindex="0" class="sapUiBlockLayerTabbable"></span></div><bdi title="Save">Save</bdi></span></span></button><button class="sapMBtnBase sapMBtn elementFadeIn sapMBarChild"><span class="sapMBtnInner sapMBtnHoverable sapMFocusable sapMBtnDefault sapMBtnText"><span class="sapMBtnContent"><div class="sapMBusyIndicator" style="display: none"><span tabindex="0" class="sapUiBlockLayerTabbable"></span><div class="sapMBusyIndicatorBusyArea sapUiLocalBusy" style="position: relative;"><div class="sapUiBlockLayer  sapUiLocalBusyIndicator sapUiLocalBusyIndicatorSizeMedium sapUiLocalBusyIndicatorFade" alt="" tabindex="0" title="Please wait"><div class="sapUiLocalBusyIndicatorAnimation sapUiLocalBusyIndicatorAnimStandard"><div></div><div></div><div></div></div></div></div><span tabindex="0" class="sapUiBlockLayerTabbable"></span></div><bdi title="Close">Close</bdi></span></span></button></div>
-                </footer>
-                <span class="sapMDialogLastFE"></span>
-            </div>
-* */

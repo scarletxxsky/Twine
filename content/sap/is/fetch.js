@@ -103,7 +103,7 @@ async function callXHR(method, url, payload = null, contentType = null, withCSRF
         if (contentType) xhr.setRequestHeader('Content-Type', contentType)
         if (withCSRF) xhr.setRequestHeader("X-CSRF-Token", await getCsrfToken())
 
-        xhr.timeout = parameters.timeout ?? 12000
+        xhr.timeout = parameters.timeout ?? 30000
         xhr.ontimeout = function(e) {
             reject({status: -1, statusText: "Timeout", reason: "TIMEOUT"})
         }

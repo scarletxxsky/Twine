@@ -1,8 +1,73 @@
-let dtArtifactMasterRequest
-let lockMasterRequest
+let requestListener = []
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     switch (message.type) {
+        case "SAP_IS_UNIFY_REQUEST":
+            let request = requestListener?.[`${message.requestType}_${message.tenantId}`]
+            if (request) { //Request running
+                //If the existing requestListener is more than 25 seconds old, create a new one
+                //todo: Reassign the requestOwner if the tab is closed before finishing
+                if (request.requestStarted > 25000) {
+                    console.log(`Creating unifiable request for ${message.requestType}_${message.tenantId}`)
+                    requestListener[`${message.requestType}_${message.tenantId}`] = {
+                        requestStarted: Date.now(),
+                        requestOwner: sender.id,
+                        subscribers: request.subscribers
+                    }
+                    sendResponse({
+                        status: "request"
+                    })
+                } else {
+                    console.log(`Adding subscriber for request ${message.requestType}_${message.tenantId}`)
+                    request.subscribers.push(sendResponse)
+                }
+                return true
+            } else { //No request running
+                readSession([`${message.requestType}_${message.tenantId}`]).then(resolve => {
+                    if ((Object.keys(resolve).length === 0) || (Date.now() - resolve[`${message.requestType}_${message.tenantId}`].fetchTimestamp > ((message.maxAge ?? 60) * 1000))) {
+                        console.log(`Creating unifiable request for ${message.requestType}_${message.tenantId}`)
+                        requestListener[`${message.requestType}_${message.tenantId}`] = {
+                            requestStarted: Date.now(),
+                            requestOwner: sender.id,
+                            subscribers: []
+                        }
+                        sendResponse({
+                            status: "request"
+                        })
+                    } else {
+                        console.log(`Returning cache for ${message.requestType}_${message.tenantId}`)
+                        sendResponse({
+                            status: "cache",
+                            [message.requestType]: resolve[`${message.requestType}_${message.tenantId}`][message.requestType]
+                        })
+                    }
+                }).catch(reject => {
+                    console.log("Error in processing")
+                    console.log(reject)
+                    sendResponse({reason: reject})
+                })
+                return true
+            }
+        case "SAP_IS_UNIFY_RESOLVE":
+            console.log(`Request finished for ${message.requestType}_${message.tenantId}`)
+            if (message.data) {
+                persistSession({
+                    [`${message.requestType}_${message.tenantId}`]: {
+                        [message.requestType]: message.data,
+                        fetchTimestamp: Date.now()
+                    }
+                })
+                requestListener?.[`${message.requestType}_${message.tenantId}`].subscribers.forEach(it => {
+                    try {
+                        it({status: "subscribed", data: message.data})
+                    } catch (e) {
+                        console.log(e, it)
+                    }
+                })
+            }
+            delete requestListener[`${message.requestType}_${message.tenantId}`]
+            console.log(`Deleted request for ${message.requestType}_${message.tenantId}`)
+            sendResponse({status: "success"})
         case "CFG_REQUEST":
             readSession(["configuration"]).then(session => {
                 if (!session.configuration) {
@@ -35,23 +100,44 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 }
             })
             return true
+        case "SAP_IS_CFG_MIGRATE":
+        //And notify other tabs, maybe?
+        case "SAP_IS_CFG_INIT":
+            persistLocal({configuration: message.configuration}).then((resolve) => {
+                persistSession({configuration: message.configuration})
+                    .then(resolve => {
+                        sendResponse({status: 0, response: resolve})
+                    })
+                    .catch(reject => {
+                        console.log(reject)
+                        sendResponse({status: -1, response: reject})
+                    })
+            }).catch((reject) => {
+                console.log(reject)
+                sendResponse({status: -1, response: reject})
+            })
+            return true
+        case "CFG_CHANGE":
+            persistLocal({configuration: message.configuration}).then((resolve) => {
+                persistSession({configuration: message.configuration})
+                    .then(resolve => {
+                        sendResponse({status: 0, message: "Session configuration updated", response: resolve})
+                    })
+                    .catch(reject => {
+                        console.log(reject)
+                        sendResponse({status: -1, message: "Couldn't update session configuration", response: reject})
+                    })
+            }).catch((reject) => {
+                console.log(reject)
+                sendResponse({status: -1, message: "Couldn't persist configuration", response: reject})
+            })
+            return true
         case "SAP_IS_CFG_REQUEST":
             readSession(["configuration"]).then(session => {
                 if (!session.configuration) {
                     readLocal(["configuration"]).then(local => {
                         if (!local.configuration) {
-                            fetch(chrome.runtime.getURL("util/defaultConfig.json")).then(fetch => {
-                                fetch.json().then(defaultConfiguration => {
-                                    let configuration =  Object.keys(defaultConfiguration).length == 0 ? null : defaultConfiguration
-                                    sendResponse({configuration: configuration})
-                                    persistSession({configuration: configuration})
-                                    persistLocal({configuration: configuration})
-                                }).catch(() => {
-                                    sendResponse({configuration: null})
-                                })
-                            }).catch(() => {
-                                sendResponse({configuration: null})
-                            })
+                            sendResponse({configuration: null})
                         } else {
                             sendResponse({configuration: local.configuration})
                             persistSession({configuration: local.configuration})
@@ -65,7 +151,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case "SAP_IS_LOCK_REQUEST":
             readSession([`locks_${message.id}`]).then(resolve => {
                 if (Object.keys(resolve).length === 0) throw "NO_LOCKS_STORED"
-                if (Date.now() - resolve[`locks_${message.id}`].fetchTimestamp > 180000) throw "LOCKS_OUTDATED"
+                if (Date.now() - resolve[`locks_${message.id}`].fetchTimestamp > 1800000) throw "LOCKS_OUTDATED"
                 sendResponse({locks: resolve[`locks_${message.id}`].locks})
             }).catch(reject => {
                 sendResponse({reason: reject})
@@ -80,14 +166,41 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 sendResponse({reason: reject})
             })
             return true
+        case "SAP_IS_SECMAT_REQUEST":
+            readSession([`secure_materials_${message.id}`]).then(resolve => {
+                if (Object.keys(resolve).length === 0) throw "NO_SECURE_MATERIALS_STORED"
+                if (Date.now() - resolve[`secure_materials_${message.id}`].fetchTimestamp > 1800000) throw "SECURE_MATERIALS_OUTDATED"
+                sendResponse({secureMaterials: resolve[`secure_materials_${message.id}`].secureMaterials})
+            }).catch(reject => {
+                sendResponse({reason: reject})
+            })
+            return true
         case "OPEN_IN_TAB":
-            chrome.tabs.create({url: message.url, active: false, index: sender.tab.index+1})
+            chrome.tabs.create({url: message.url, active: false, index: sender.tab.index + 1})
             return false
         case "LOCKS_FETCHED":
             persistSession({[`locks_${message.id}`]: {locks: message.locks, fetchTimestamp: Date.now()}})
             return false
+        case "SECMAT_FETCHED":
+            persistSession({
+                [`secure_materials_${message.id}`]: {
+                    secureMaterials: message.secureMaterials,
+                    fetchTimestamp: Date.now()
+                }
+            })
+            return false
         case "DESIGNTIME_ARTIFACTS_FETCHED":
-            persistSession({[`designtime_artifacts_${message.id}`]: {artifacts: message.artifacts, fetchTimestamp: Date.now()}})
+            persistSession({
+                [`designtime_artifacts_${message.id}`]: {
+                    artifacts: message.artifacts,
+                    fetchTimestamp: Date.now()
+                }
+            })
+            chrome.tabs.query({url: `https://${message.id}.integrationsuite.cfapps.${message.server}.hana.ondemand.com/*`}).then(tabs => {
+                tabs.forEach(it => {
+                    chrome.tabs.sendMessage(it.id, {type: "DESIGNTIME_ARTIFACTS_CHANGED", artifacts: message.artifacts})
+                })
+            })
             return false
         case "RESET_DATA":
             chrome.storage.local.clear()
@@ -103,7 +216,7 @@ function getDefaultConfig() {
     return new Promise((resolve, reject) => {
         fetch(chrome.runtime.getURL("util/defaultConfig.json")).then(defaultConfiguration => {
             fetch.text().then(defaultConfiguration => {
-                let configuration =  Object.keys(defaultConfiguration).length == 0 ? null : defaultConfiguration
+                let configuration = Object.keys(defaultConfiguration).length == 0 ? null : defaultConfiguration
                 persistSession({configuration: configuration})
                 persistLocal({configuration: configuration})
                 resolve({configuration: configuration})
@@ -115,20 +228,6 @@ function getDefaultConfig() {
         })
     })
 }
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === 'SAPUI5_ROUTER_EVENT') {
-        console.log('Received SAPUI5 Router Event:', message.details);
-        // Handle the router event, e.g., log it or send it to a server
-    }
-});
-
-/*chrome.runtime.onInstalled.addListener(function (details) {
-    if (details.reason == "install") {
-    } else if (details.reason == "update") {
-        chrome.tabs.create({url: "util/changelog.md", active: true})
-    }
-});*/
 
 let eventLastFired = {}, minimumFireDistance = 800
 /*
@@ -161,7 +260,7 @@ chrome.webRequest.onResponseStarted.addListener(function (details) {
             }
             break
         case /manageTenant\/api\/1\.0\/preferences$/.test(details.url):
-        //case /manageTenant\/static\/istudio\/com\/sap\/it\/spc\/webui\/commons\/library-preload\.js$/.test(details.url):
+            //case /manageTenant\/static\/istudio\/com\/sap\/it\/spc\/webui\/commons\/library-preload\.js$/.test(details.url):
             triggerISEvent(details, "GENERAL_ONLOAD")
             break
         case /\/api\/1.0\/workspace\/[^\/]+\?lockinfo=true&webdav=LOCK/.test(details.url):
@@ -180,15 +279,15 @@ chrome.webRequest.onResponseStarted.addListener(function (details) {
             triggerISEvent(details, "ISTUDIO_DESIGN_ONLOAD")
             break
         case /context\?id=36221744$/.test(details.url):
-        //case /^https:\/\/help\.sap\.com.*cpides_design_package_overview/.test(details.url):
+            //case /^https:\/\/help\.sap\.com.*cpides_design_package_overview/.test(details.url):
             triggerISEvent(details, "PACKAGE_OVERVIEW_ONLOAD")
             break
         case /context\?id=36221797$/.test(details.url):
-        //case /^https:\/\/help\.sap\.com.*cpides_design_package_artifacts/.test(details.url):
+            //case /^https:\/\/help\.sap\.com.*cpides_design_package_artifacts/.test(details.url):
             triggerISEvent(details, "PACKAGE_ARTIFACTS_ONLOAD")
             break
         case /context\?id=36221812$/.test(details.url):
-        //case /^https:\/\/help\.sap\.com.*cpides_design_package_documents/.test(details.url):
+            //case /^https:\/\/help\.sap\.com.*cpides_design_package_documents/.test(details.url):
             triggerISEvent(details, "PACKAGE_DOCUMENTS_ONLOAD")
             break
         case /context\?id=36221805$/.test(details.url):
@@ -196,6 +295,9 @@ chrome.webRequest.onResponseStarted.addListener(function (details) {
             break
         case /.*\/.*\?webdav=CLOSE$/.test(details.url):
             triggerISEvent(details, "ARTIFACT_CLOSE")
+            break
+        case /workspace\/artifacts\/accesspolicy$/.test(details.url):
+            triggerISEvent(details, "ARTIFACT_EDIT")
             break
         default:
             break
@@ -216,10 +318,34 @@ function triggerISEvent(details, type, specificMinimumFireDistance) {
     }
 }
 
-async function persistSync(entries) { return chrome.storage.sync.set(entries) }
-async function persistLocal(entries) { return chrome.storage.local.set(entries) }
-async function persistSession(entries) { return chrome.storage.session.set(entries) }
+async function persistSync(entries) {
+    return chrome.storage.sync.set(entries)
+}
 
-async function readSync(keys) { return chrome.storage.sync.get(keys) }
-async function readLocal(keys) { return chrome.storage.local.get(keys) }
-async function readSession(keys) { return chrome.storage.session.get(keys) }
+async function persistLocal(entries) {
+    return chrome.storage.local.set(entries)
+}
+
+async function persistSession(entries) {
+    return chrome.storage.session.set(entries)
+}
+
+async function readSync(keys) {
+    return chrome.storage.sync.get(keys)
+}
+
+async function readLocal(keys) {
+    return chrome.storage.local.get(keys)
+}
+
+async function readSession(keys) {
+    return chrome.storage.session.get(keys)
+}
+
+
+chrome.runtime.onInstalled.addListener(function (details) {
+    if (details.reason == "install") {
+    } else if (details.reason == "update") {
+        //chrome.tabs.create({url:chrome.runtime.getURL("util/update.html")},function(){})
+    }
+});

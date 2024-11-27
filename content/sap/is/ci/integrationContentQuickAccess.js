@@ -13,74 +13,133 @@ function apiProxiesUrl() {
 }
 
 function initializeIntegrationContentQuicklinks() {
+    let runStart = window.performance.now()
+    twineNavigationList = document.createElement("ul")
+    twineNavigationList.height = "max-content"
+    twineNavigationList.style.flexGrow = "1"
+    twineNavigationList.id = "__twine-shell--navigationList"
+    twineNavigationList.classList.add("sapTntNL", "disableScrollbars", "elementFadeIn", "widthShift")
+
+    if (!sidebarMainContent.classList.contains("sapTntNLCollapsed")) {
+        sidebar.appendChild(twineNavigationList)
+    }
+
+    let navigationExtensionBase = document.createElement("li")
+    twineNavigationList.appendChild(navigationExtensionBase)
+
+    artifactTree = new Tree()
+    artifactTree.setBusy(true, "Fetching Packages")
+    navigationExtensionBase.appendChild(artifactTree.domInstance)
+
     fetchArtifacts()
         .then(designtimeResolve => {
-            twineNavigationList = document.createElement("ul")
-            twineNavigationList.height = "max-content"
-            twineNavigationList.style.flexGrow = "1"
-            twineNavigationList.id = "__twine-shell--navigationList"
-            twineNavigationList.classList.add("sapTntNL", "disableScrollbars", "elementFadeIn", "widthShift")
+            let runStart = window.performance.now()
 
-            if (!sidebarMainContent.classList.contains("sapTntNLCollapsed")) {
-                sidebar.appendChild(twineNavigationList)
-            }
-
-            let navigationExtensionBase = document.createElement("li")
-
-            twineNavigationList.appendChild(navigationExtensionBase)
-            artifactTree = new Tree([{
+            artifactTree.setBusy(false, "")
+            integrationContentQuickAccessReady = true
+            artifactTree.addTrunks([{
                 title: "Packages",
                 meta: {twineContext: "TREE_ROOT", twineContextType: "Package", twineContextRoot: "/shell/design"},
                 children: designtimeResolve.contentPackages
             }])
-            navigationExtensionBase.appendChild(artifactTree.domInstance)
-            integrationContentQuickAccessReady = true
 
-            callXHR("GET", apiProxiesUrl(), null, null, true, {headers: {"Cache-Control": "no-cache, max-age=0"}}).then(apiResolve => {
-                let proxyTrunk = JSON.parse(apiResolve).d.results.sort((a,b) => { return (a.name < b.name) ? -1 : (a.name > b.name) ? 1 : 0 })
-                    .map(proxy => {
-                        return {
-                            title: proxy.title,
-                            meta: {
-                                twineContext: "TREE_LEAF",
-                                twineContextType: proxy.__metadata.type,
-                                packageId: proxy.name,
-                                packageName: proxy.title,
-                                artifactId: proxy.name,
-                                artifactName: proxy.title,
-                                search: [...new Set([
-                                    proxy.title.replaceAll(/[\s_\-:()\[\]]/g, "").toLowerCase(),
-                                    proxy.name.replaceAll(/[\s_\-:()\[\]]/g, "").toLowerCase()
-                                ])].join("_"),
-                                shortText: proxy.description
-                            },
-                            children: null
-                        }
-                    })
-                artifactTree.addTrunks([{
-                    title: "API Proxies",
-                    meta: {twineContext: "TREE_ROOT", twineContextType: "APIProxy", twineContextRoot: "/shell/configure"},
-                    children: proxyTrunk
-                }])
-            }).catch(apiReject => {
-                switch (apiReject.status) {
-                    case 500:
-                        warn(`APIs could not be loaded`)
-                        break;
-                    case 403:
-                        warn(`User does not have API permissions`)
-                        break;
-                    case 401:
-                        warn(`User session may have expired`)
-                        break;
-                    default:
-                        error(`${apiReject?.reason}: ${apiReject?.statusText}`)
-                        break;
-                }
+            elapsedTime += window.performance.now() - runStart
+        }).catch(designtimeReject => {
+        artifactTree.setBusy(false, "")
+        switch (designtimeReject.status) {
+            case 500:
+                warn(`Packages could not be loaded`)
+                break;
+            case 403:
+                warn(`User does not have permission to access integration content`)
+                break;
+            case 401:
+                warn(`User session may have expired`)
+                break;
+            default:
+                error(`${designtimeReject?.reason}: ${designtimeReject?.statusText}`)
+                break;
+        }
+        createToast({message: "Error while loading designtime packages"})
+    }).finally(() => {
+        artifactTree.setBusy(true, "Fetching API Proxies")
+        callXHR("GET", apiProxiesUrl(), null, null, true, {headers: {"Cache-Control": "no-cache, max-age=0"}}).then(apiResolve => {
+            let runStart = window.performance.now()
+
+            artifactTree.setBusy(false, "")
+            let proxyTrunk = JSON.parse(apiResolve).d.results.sort((a, b) => {
+                return (a.name < b.name) ? -1 : (a.name > b.name) ? 1 : 0
             })
-    }).catch(designtimeReject => {
-        error(`${designtimeReject.reason}: ${designtimeReject.statusText}`)
+                .map(proxy => {
+                    return {
+                        title: proxy.title,
+                        meta: {
+                            twineContext: "TREE_LEAF",
+                            twineContextType: proxy.__metadata.type,
+                            packageId: proxy.name,
+                            packageName: proxy.title,
+                            artifactId: proxy.name,
+                            artifactName: proxy.title,
+                            search: [...new Set([
+                                proxy.title.replaceAll(/[\s_\-:()\[\]]/g, "").toLowerCase(),
+                                proxy.name.replaceAll(/[\s_\-:()\[\]]/g, "").toLowerCase()
+                            ])].join("_"),
+                            shortText: proxy.description
+                        },
+                        children: null
+                    }
+                })
+
+            artifactTree.addTrunks([{
+                title: "API Proxies",
+                meta: {
+                    twineContext: "TREE_ROOT",
+                    twineContextType: "APIProxy",
+                    twineContextRoot: "/shell/configure"
+                },
+                children: proxyTrunk
+            }])
+
+
+            elapsedTime += window.performance.now() - runStart
+        }).catch(apiReject => {
+            artifactTree.setBusy(false, "")
+            switch (apiReject.status) {
+                case 500:
+                    warn(`APIs could not be loaded`)
+                    break;
+                case 403:
+                    warn(`User does not have API permissions`)
+                    break;
+                case 401:
+                    warn(`User session may have expired`)
+                    break;
+                default:
+                    error(`${apiReject?.reason}: ${apiReject?.statusText}`)
+                    break;
+            }
+        }).finally(() => {
+            artifactTree.setBusy(true, "Fetching Secure Materials")
+            let secureMaterials = fetchSecureMaterials().then(secureMaterials => {
+                console.log(secureMaterials)
+                artifactTree.addTrunks([{
+                    title: "Secure Materials",
+                    meta: {
+                        twineContext: "TREE_ROOT",
+                        twineContextType: "SecureMaterial",
+                        twineContextRoot: "/shell/monitoring/SecurityMaterials"
+                    },
+                    children: secureMaterials
+                }])
+            }).catch(e => {
+                console.log(e)
+            }).finally(() => {
+                artifactTree.setBusy(false, "")
+            })
+        })
     })
+
+    elapsedTime += window.performance.now() - runStart
 }
 
 async function fetchArtifacts(parameters) {
@@ -89,7 +148,9 @@ async function fetchArtifacts(parameters) {
         artifactRequestStarted = false
         let contentPackages = fetchedArtifacts
         if (!fromCache === true) {
-            contentPackages = contentPackages.sort((a,b) => { return (a.DisplayName < b.DisplayName) ? -1 : (a.DisplayName > b.DisplayName) ? 1 : 0 })
+            contentPackages = contentPackages.sort((a, b) => {
+                return (a.DisplayName < b.DisplayName) ? -1 : (a.DisplayName > b.DisplayName) ? 1 : 0
+            })
                 .map(package => {
                     return {
                         title: package.DisplayName,
@@ -114,8 +175,12 @@ async function fetchArtifacts(parameters) {
                                 return data
                             }, {})
                         ) : [])
-                            .filter(property => { return Array.isArray(property[1]) })
-                            .sort((a, b) => { return (getTypeConversion("type", "priority", a[0]) < getTypeConversion("type", "priority", b[0])) ? -1 : (getTypeConversion("type", "priority", a[0]) < getTypeConversion("type", "priority", b[0])) ? 1 : 0 })
+                            .filter(property => {
+                                return Array.isArray(property[1])
+                            })
+                            .sort((a, b) => {
+                                return (getTypeConversion("type", "priority", a[0]) < getTypeConversion("type", "priority", b[0])) ? -1 : (getTypeConversion("type", "priority", a[0]) < getTypeConversion("type", "priority", b[0])) ? 1 : 0
+                            })
                             .map(typeList => {
                                 return {
                                     title: getTypeConversion("type", "displayNameP", typeList[0]),
@@ -145,7 +210,9 @@ async function fetchArtifacts(parameters) {
                                             },
                                             children: null
                                         }
-                                    }).sort((a, b) => { return (a.title < b.title) ? -1 : (a.title > b.title) ? 1 : 0 })
+                                    }).sort((a, b) => {
+                                        return (a.title < b.title) ? -1 : (a.title > b.title) ? 1 : 0
+                                    })
                                 }
                             })
                     }
@@ -153,7 +220,8 @@ async function fetchArtifacts(parameters) {
             chrome.runtime.sendMessage({
                 type: "DESIGNTIME_ARTIFACTS_FETCHED",
                 artifacts: contentPackages,
-                id: getTenantId()
+                id: getTenantId(),
+                datacenter: getTenantDatacenter()
             })
         }
 
@@ -228,25 +296,28 @@ function removePrefix(artifactName, artifactType) {
 }
 
 function getMouseAction(action, button) {
-    let mouseMapping = configuration?.sap?.integrationSuite?.cloudIntegration?.mouseMapping?.[action] ?? configuration?.sap?.integrationSuite?.cloudIntegration?.mouseMapping?.default
+    let mouseMapping = configuration?.sap?.integrationSuite?.cloudIntegration?.mouseMapping?.[action]
     if (!mouseMapping) return button
 
     let configButton = (button === 0 ? "left" : button === 2 ? "right" : "other")
     let buttonMapping = mouseMapping[configButton]
     if (buttonMapping < 0 || buttonMapping > 2) return button
-
     return buttonMapping
 }
 
-function getLockedItem(action, id, icon, reason) {
+function getLockedItem(action, id, icon, reason, radialIndex) {
     return {
+        radialIndex: radialIndex ?? -1,
+        actionId: id,
         actions: [{
             mouse: getMouseAction(action, 0),
             id: id,
             icon: icon,
             title: reason,
             type: "DISABLED",
-            callback: () => {}
+            callback: () => {
+            }
         }]
     }
 }
+

@@ -6,7 +6,7 @@ function createFixedListItem(parameters) {
     let flItem = createElementFrom(`
         <li id="__twine_FooterListElement_${parameters.id}" class="elementFadeIn noSelect">
             <div class="sapTntNLI sapTntNLIFirstLevel">
-                <a id="____twine_FooterListElement_${parameters.id}" title="${parameters.title}" tabindex="-1">
+                <a id="____twine_FooterListElement_${parameters.id}" tabindex="-1">
                     <span data-sap-ui-icon-content="${parameters.descriptiveIcon}" class="sapUiIcon sapTntNLIIcon sapUiIconMirrorInRTL" style="font-family: SAP-icons; ${parameters.color != null ? `color: ${parameters.color}` : ""}"></span>
                     <span class="sapMText sapTntNLIText sapMTextNoWrap" style="text-align: left; ${parameters.color != null ? `color: ${parameters.color}` : ""}">${parameters.title}</span>
                     <span role="presentation" class="sapTntNLISelectionIndicator sapUiIcon sapUiIconMirrorInRTL" style="font-family: SAP-icons;"></span>
@@ -19,19 +19,25 @@ function createFixedListItem(parameters) {
         flItem.classList.toggle("disabledListItem")
     }
     if (parameters.suppressContextMenu) {
-        flItem.addEventListener("contextmenu", e => { e.preventDefault(); e.stopPropagation(); return false })
+        flItem.addEventListener("contextmenu", e => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false
+        })
     }
 
     if (parameters.callback != null) {
-        flItem.addEventListener(parameters.callback.on, function(event) { parameters.callback.function(event) })
+        flItem.addEventListener(parameters.callback.on, function (event) {
+            parameters.callback.function(event)
+        })
     } else {
-        flItem.addEventListener("mousedown", function(event) {
+        flItem.addEventListener("mousedown", function (event) {
             event.preventDefault()
             event.stopPropagation()
             if (event.button == getMouseAction("fixedItem", 1)) {
                 chrome.runtime.sendMessage({
                     type: "OPEN_IN_TAB",
-                    url: window.location.protocol+"//"+window.location.host+parameters.url
+                    url: window.location.protocol + "//" + window.location.host + parameters.url
                 })
             } else if (event.button == getMouseAction("fixedItem", 0)) {
                 window.location.replace(parameters.url)
@@ -143,7 +149,7 @@ function processToasts() {
 function createToast(parameters) {
     let toast = createElementFrom(`
         <div class="sapMMessageToast sapUiSelectable sapContrast sapContrastPlus elementFadeIn" role="alert" style="max-width: max-content !important; position: absolute; visibility: visible; z-index: 80; display: block; bottom: 20px; left: 0; right: 0; margin-left: auto; margin-right: auto;">
-            <span tabIndex="0" class="sapMMessageToastHiddenFocusable" style="max-width: 40%; width: auto !important;"/>${parameters.message ?? `There's no message here, unfortunately.<br>But if there was, it would probably be this.<p><b>${parameters}</b></p><i>Kindly report this. Thank you!</i>`} 
+            <span tabIndex="0" class="sapMMessageToastHiddenFocusable" style="max-width: 40%; width: auto !important;"/>${parameters.message ?? `There's no message here, unfortunately.<br>But if there was, it might be something like this.<p><b>${parameters}</b></p><i>Kindly report this. Thank you!</i>`} 
         </div>
     `)
 
@@ -290,10 +296,8 @@ function createRadialAvatarMashup(parameters) {
         menuItem.classList.add("radialEmpty")
     } else {
         let mainAction = parameters.item.actions.find((it, index) => {
-            return it.mouse == parameters.button
-        }) ?? {
-            icon: "", title: "Unused", type: "DISABLED", callback: () => {}
-        }
+            return it.mouse == getMouseAction(parameters.item.actionId, parameters.button)
+        }) ?? parameters.item.actions[0]
         let actionIndex = parameters.item.actions.indexOf(mainAction)
         menuItem.className = "radialMenu-action radialMenu-item";
         menuItem.innerHTML = `
@@ -329,9 +333,9 @@ function createRadialAvatarMashup(parameters) {
         menuItem.style.left = `${parameters.x}px`
         menuItem.style.top = `${parameters.y}px`
         menuItem.animate([
-            { opacity: 0, transform: `translate(${parameters.x*-1}px, ${parameters.y*-1}px)` },
-            { opacity: 1, transform: "translate(0px, 0px)" }
-        ], { duration: 100, iterations: 1})
+            {opacity: 0, transform: `translate(${parameters.x * -1}px, ${parameters.y * -1}px)`},
+            {opacity: 1, transform: "translate(0px, 0px)"}
+        ], {duration: 100, iterations: 1})
 
         const tooltip = document.createElement("div");
         tooltip.className = "radialTooltip";
@@ -410,6 +414,8 @@ function clipBoardCopy(text) {
 class Tree {
     domInstance
     domInstanceListReference
+    domInstanceBusyIndicatorReference
+    domInstanceBusyIndicatorTextReference
     children = []
 
     constructor(trunks) {
@@ -418,28 +424,38 @@ class Tree {
                 <div class="sapMList" style="width: 100%;">
                     <div tabIndex="-1" class="sapMListDummyArea"></div>
                     <ul tabIndex="0" class="sapMListItems sapMListUl sapMListShowSeparatorsAll sapMListModeNone"></ul>
+                    <div class="sapMBusyIndicator" style="display: none"><span tabindex="0" class="sapUiBlockLayerTabbable"></span><div class="sapMBusyIndicatorBusyArea sapUiLocalBusy" style="position: relative;"><div class="sapUiBlockLayer  sapUiLocalBusyIndicator sapUiLocalBusyIndicatorSizeMedium sapUiLocalBusyIndicatorFade" alt="" tabindex="0" title="Please wait"><div class="sapUiLocalBusyIndicatorAnimation sapUiLocalBusyIndicatorAnimStandard"><div></div><div></div><div></div></div></div></div><span tabindex="0" class="sapUiBlockLayerTabbable"></span></div>
                     <div tabIndex="0" class="sapMListDummyArea sapMListDummyAreaSticky"></div>
                 </div>
             </div>
         `)
         this.domInstanceListReference = this.domInstance.querySelector("div > div > ul")
+        this.domInstanceBusyIndicatorReference = this.domInstance.querySelector("div > div > div:nth-of-type(2)")
+        this.domInstanceBusyIndicatorTextReference = this.domInstance.querySelector("div > div > div:nth-of-type(2) > span:nth-of-type(2)")
         this.domInstance.addEventListener("contextmenu", e => preventDefaultAction(e))
         this.addTrunks(trunks)
     }
 
     addTrunks(trunks) {
-        try {
-            let additions = trunks.map(it => {
-                return new Trunk(this.domInstanceListReference, it.title, it.meta, null, it.children)
-            })
-            this.children.push(...additions)
-        } catch (e) {
-            console.error(e)
+        if (trunks?.length > 0) {
+            try {
+                let additions = trunks.map(it => {
+                    return new Trunk(this.domInstanceListReference, it.title, it.meta, null, it.children)
+                })
+                this.children.push(...additions)
+            } catch (e) {
+                console.error(e)
+            }
         }
     }
 
     flatList(trunk) {
         return this.children.find(it => it.meta.twineContextType === trunk)?.flatList().flat() ?? null
+    }
+
+    setBusy(show, text) {
+        this.domInstanceBusyIndicatorReference.style.display = show === true ? "block" : "none"
+        this.domInstanceBusyIndicatorTextReference.innerText = text
     }
 }
 
@@ -447,6 +463,7 @@ class TreeItem {
     meta
     domInstance
     domInstanceLockIconReference
+
     constructor(meta) {
         this.meta = meta
     }
@@ -465,6 +482,7 @@ class Trunk extends TreeItem {
     childArtifacts
     open = false
     icon = ""
+
     constructor(listReference, title, meta, root, children) {
         super(meta)
         this.domInstance = createElementFrom(`
@@ -478,7 +496,10 @@ class Trunk extends TreeItem {
         this.searchArtifact = new TreeSearch(meta, this)
         listReference.appendChild(this.searchArtifact.domInstance)
         if (children != null) {
-            this.domInstance.addEventListener("mousedown", (e) => { this.click(e); return false })
+            this.domInstance.addEventListener("mousedown", (e) => {
+                this.click(e);
+                return false
+            })
             this.childArtifacts = children.map(it => {
                 switch (it.meta.twineContext) {
                     case "TREE_BRANCH":
@@ -497,13 +518,13 @@ class Trunk extends TreeItem {
 
     click(event) {
         preventDefaultAction(event)
-        if (event.button == getMouseAction("directory", 1)) {
+        if (getMouseAction("directory", event.button) == 1) {
             chrome.runtime.sendMessage({
                 type: "OPEN_IN_TAB",
                 url: "https://" + window.location.host + this.meta.twineContextRoot
             })
-        } else if (event.button == getMouseAction("directory", 2)) {
-            window.location.assign( this.meta.twineContextRoot)
+        } else if (getMouseAction("directory", event.button) == 2) {
+            window.location.assign(this.meta.twineContextRoot)
         } else {
             this.toggle()
         }
@@ -525,14 +546,15 @@ class Trunk extends TreeItem {
         })
     }
 
-    search(phrase) {
-        this.childArtifacts.forEach(it => it.search(phrase))
+    search(phrase, inputElement) {
+        this.childArtifacts.forEach(it => it.search(phrase, inputElement))
     }
 }
 
 class TreeSearch extends TreeItem {
     root
     domInstanceSearchReference
+
     constructor(meta, root) {
         super(meta);
         this.root = root
@@ -541,6 +563,7 @@ class TreeSearch extends TreeItem {
                 <form class="sapMSFF">
                     <span class="sapMSFSSI"></span>
                     <input type="search" autocomplete="off" placeholder="Search" value="" class="sapMSFI">
+                    <span id="__button111110-tooltip" class="sapUiInvisibleText">bar-code</span>
                     <div class="sapMSFR sapMSFB"></div>
                     <div class="sapMSFS sapMSFB"></div>
                 </form>
@@ -549,13 +572,13 @@ class TreeSearch extends TreeItem {
         this.domInstanceSearchReference = this.domInstance.querySelector("li > form > input")
         this.domInstanceSearchReference.addEventListener("input", (event) => {
             let runStart = window.performance.now()
-            this.root.search(event.target.value.replaceAll(/[\s_\-:()\[\]]/g, "").toLowerCase())
+            this.root.search(event.target.value.startsWith(":") ? event.target.value : event.target.value.replaceAll(/[\s_\-()\[\]]|(?<!^):/g, "").toLowerCase(), event.target.parentElement)
             elapsedTime += window.performance.now() - runStart
         })
         this.domInstance.addEventListener("keydown", event => {
             if (event.key === "Backspace" || event.key === "Delete") {
                 let runStart = window.performance.now()
-                this.root.search(event.target.value.replaceAll(/[\s_\-:()\[\]]/g, "").toLowerCase())
+                this.root.search(event.target.value.startsWith(":") ? event.target.value : event.target.value.replaceAll(/[\s_\-()\[\]]|(?<!^):/g, "").toLowerCase(), event.target.parentElement)
                 elapsedTime += window.performance.now() - runStart
             }
         })
@@ -568,6 +591,7 @@ class Branch extends TreeItem {
     open = false
     icon = ""
     lock = null
+
     constructor(listReference, title, meta, level, root, children) {
         super(meta)
         this.root = root
@@ -585,7 +609,10 @@ class Branch extends TreeItem {
         this.domInstanceLockIconReference = this.domInstance.querySelector("li > div > span")
         listReference.appendChild(this.domInstance)
         if (children != null) {
-            this.domInstance.addEventListener("mousedown", (e) => { this.click(e); return false })
+            this.domInstance.addEventListener("mousedown", (e) => {
+                this.click(e);
+                return false
+            })
             this.childArtifacts = children.map(it => {
                 switch (it.meta.twineContext) {
                     case "TREE_BRANCH":
@@ -603,13 +630,11 @@ class Branch extends TreeItem {
 
     click(event) {
         preventDefaultAction(event)
-        if (event.button == getMouseAction("directory", 1)) {
-            chrome.runtime.sendMessage({
-                type: "OPEN_IN_TAB",
-                url: "https://" + window.location.host  + this.root.meta.twineContextRoot + "/" + getTypeConversion("type", "urlType", this.meta.twineContextType) + `/${this.meta.packageId}?section=ARTIFACTS`
-            })
-        } else if (event.button == getMouseAction("directory", 2)) {
-            window.location.assign(  this.root.meta.twineContextRoot + "/" + getTypeConversion("type", "urlType", this.meta.twineContextType) + `/${this.meta.packageId}?section=ARTIFACTS`)
+        if (getMouseAction("directory", event.button) != 0) {
+            let menuItems = this.getRadialItems(event)
+            new RadialMenu()
+                .withItems(menuItems, event)
+                .show(event)
         } else {
             this.toggle()
         }
@@ -635,29 +660,112 @@ class Branch extends TreeItem {
     }
 
     getRadialItems(e) {
-        return super.getRadialItems(e).concat([{
-            radialIndex: 1,
-            actions: [{
-                mouse: getMouseAction("copy", 0),
-                id: "copyPackageId",
-                icon: "",
-                title: "Package ID",
-                callback: () => {
-                    clipBoardCopy(meta.packageId)
-                }
+        let path = `/shell/design/contentpackage/${this.meta.packageId}?section=ARTIFACTS`
+        return super.getRadialItems(e).concat([
+            {
+                radialIndex: 2,
+                actionId: "typeAction",
+                actions: [{
+                    mouse: getMouseAction("typeAction", 0),
+                    id: "monitoringInTab",
+                    icon: "",
+                    title: "Open Monitor",
+                    callback: () => {
+                        window.location.assign(`/shell/monitoring/Messages/{"edge":{"runtimeLocationId":"cloudintegration"},"status":"ALL","packageId":"${this.meta.packageId}"}`)
+                    }
+                }, {
+                    mouse: getMouseAction("typeAction", 1),
+                    id: "monitoringNewTab",
+                    icon: "",
+                    title: "Monitor (New Tab)",
+                    callback: () => {
+                        chrome.runtime.sendMessage({
+                            type: "OPEN_IN_TAB",
+                            url: "https://" + window.location.host + `/shell/monitoring/Messages/{"edge":{"runtimeLocationId":"cloudintegration"},"status":"ALL","packageId":"${this.meta.packageId}"}`
+                        })
+                    }
+                }]
+            },
+            {
+                radialIndex: 1,
+                actionId: "copy",
+                actions: [{
+                    mouse: getMouseAction("copy", 0),
+                    id: "copyPackageId",
+                    icon: "",
+                    title: "Package ID",
+                    callback: () => {
+                        clipBoardCopy(this.meta.packageId)
+                    }
+                }, {
+                    mouse: getMouseAction("copy", 2),
+                    id: "copyPackageName",
+                    icon: "",
+                    title: "Package Name",
+                    callback: () => {
+                        clipBoardCopy(this.meta.packageName)
+                    }
+                }]
             }, {
-                mouse: getMouseAction("copy", 2),
-                id: "copyPackageName",
-                icon: "",
-                title: "Package Name",
-                callback: () => {
-                    clipBoardCopy(meta.packageName)
-                }
-            }]
-        }])
+                radialIndex: 0,
+                actionId: "open",
+                actions: [{
+                    mouse: 2,
+                    id: "copyLink",
+                    icon: "",
+                    title: "Copy Link",
+                    callback: () => {
+                        clipBoardCopy("https://" + window.location.host + path)
+                    }
+                }, {
+                    mouse: 1,
+                    id: "openNewTab",
+                    icon: "",
+                    title: "New Tab",
+                    callback: () => {
+                        chrome.runtime.sendMessage({
+                            type: "OPEN_IN_TAB",
+                            url: "https://" + window.location.host + path
+                        })
+                    }
+                }, {
+                    mouse:0,
+                    id: "openInTab",
+                    icon: "",
+                    title: "Open",
+                    callback: () => {
+                        window.location.assign(path)
+                    }
+                }]
+            }, getUnlockAction(this.meta, this.lock)])
     }
 
-    search(phrase) {
+    search(phrase, inputElement) {
+        if (phrase.startsWith(":")) {
+            if (phrase.length > 1) {
+                let [command, ...options] = phrase.slice(1).split("-")
+                this.searchCommand(command, options.join("-"), inputElement)
+            } else {
+                this.childArtifacts.forEach(it => it.qualifies(true, true))
+                return this.qualifies(true)
+            }
+        } else {
+            if (this.meta.search.includes(phrase)) {
+                this.childArtifacts.forEach(it => it.qualifies(true, true))
+                return this.qualifies(true)
+            } else {
+                return this.qualifies(
+                    someOfAll(this.childArtifacts, it => {
+                        return it.search(phrase)
+                    })
+                )
+            }
+        }
+
+        /*if (phrase === ":locked" && this.lock != null) {
+            this.childArtifacts.forEach(it => it.search(phrase))
+            return this.qualifies(true)
+        }
         if (this.meta.search.includes(phrase)) {
             this.childArtifacts.forEach(it => it.qualifies(true, true))
             return this.qualifies(true)
@@ -667,8 +775,73 @@ class Branch extends TreeItem {
                     return it.search(phrase)
                 })
             )
+        }*/
+    }
+
+    searchCommand(command, options, inputElement) {
+        switch (command.toLowerCase()) {
+            case "lock":
+            case "locks":
+            case "locked":
+                if (this.lock != null) {
+                    if (options == null) {
+                        this.childArtifacts.forEach(it => it.searchCommand(command, options))
+                        return this.qualifies(true)
+                    } else if (options === "me") {
+                        if (this.lock.Owned) {
+                            this.childArtifacts.forEach(it => it.searchCommand(command, options))
+                            return this.qualifies(true)
+                        } else {
+                            return this.qualifies(
+                                someOfAll(this.childArtifacts, it => {
+                                    return it.searchCommand(command, options)
+                                })
+                            )
+                        }
+                    } else {
+                        if (this.lock.CreatedBy.match(new RegExp(String.raw`.*${options}.*`))) {
+                            this.childArtifacts.forEach(it => it.searchCommand(command, options))
+                            return this.qualifies(true)
+                        } else {
+                            return this.qualifies(
+                                someOfAll(this.childArtifacts, it => {
+                                    return it.searchCommand(command, options)
+                                })
+                            )
+                        }
+                    }
+                } else return this.qualifies(
+                    someOfAll(this.childArtifacts, it => {
+                        return it.searchCommand(command, options)
+                    })
+                )
+                break
+            case "regex":
+            case "rx":
+                if (options == null) return this.qualifies(true)
+                try {
+                    inputElement.classList.remove("sapMInputBaseContentWrapperError")
+                    new RegExp(options, "i")
+                } catch (error) {
+                    console.error(error)
+                    inputElement.classList.add("sapMInputBaseContentWrapperError")
+                }
+                if (new RegExp(String.raw`.*${options}.*`, "i").test(this.meta.search)) {
+                    this.childArtifacts.forEach(it => it.qualifies(true, true))
+                    return this.qualifies(true)
+                } else {
+                    return this.qualifies(
+                        someOfAll(this.childArtifacts, it => {
+                            return it.searchCommand(command, options)
+                        })
+                    )
+                }
+            default:
+                this.childArtifacts.forEach(it => it.qualifies(true))
+                return this.qualifies(true)
         }
     }
+
 
     qualifies(result, withChild) {
         if (result) {
@@ -684,7 +857,7 @@ class Branch extends TreeItem {
         this.lock = lock
         lock.references.push(this)
 
-        this.domInstanceLockIconReference.setAttribute("data-sap-ui-icon-content", loggedInUser.Name !== lock.createdBy ? " " : "")
+        this.domInstanceLockIconReference.setAttribute("data-sap-ui-icon-content", loggedInUser.Name !== lock.CreatedBy ? " " : "")
         this.domInstanceLockIconReference.style.color = "#aa0808"
         this.domInstanceLockIconReference.style.fontWeight = "700"
         this.domInstanceLockIconReference.classList.add("elementFadeIn")
@@ -693,27 +866,33 @@ class Branch extends TreeItem {
 
     onLockRemoved() {
         this.domInstanceLockIconReference.style.display = "none"
+        this.lock = null
     }
 }
+
 class IntermediateBranch extends TreeItem {
     root
     childArtifacts
     open = false
     icon = ""
+
     constructor(listReference, title, meta, level, root, children) {
         super(meta)
         this.root = root
-        this.icon = meta.twineContextType === "Package" || meta.twineContext === "TREE_ROOT" ? "" : getTypeConversion("type", "symbol", meta?.twineContextType)
+        this.icon = meta.twineContextType === "Package" || meta.twineContext === "TREE_ROOT" ? "" : getTypeConversion("type", "symbol", meta?.twineContextType) ?? ""
         this.domInstance = createElementFrom(`
             <li tabIndex="-1" class="sapMLIB sapMLIB-CTX sapMLIBShowSeparator sapMLIBTypeInactive sapMLIBFocusable sapMTreeItemBase sapMSTI ${level === 0 ? "__twineArtifact-show" : ""}" style="padding-left: ${`${level * 1}rem`}; display: ${level === 0 ? "flex" : "none"}">
                 <span data-sap-ui-icon-content="${this.icon}" class="sapUiIcon sapUiIconMirrorInRTL sapUiIconPointer sapMTreeItemBaseExpander" style="font-family: SAP-icons; font-weight: bold"></span>
-                <div class="sapMLIBContent"><strong>${title}</strong></div>
+                <div class="sapMLIBContent"><strong>${title ?? "Unknown Type (Please report this)"}</strong></div>
             </li>
         `)
         this.domInstance.style.color = getTypeConversion("type", "displayColor", meta.twineContextType) ?? "inherit"
         listReference.appendChild(this.domInstance)
         if (children != null) {
-            this.domInstance.addEventListener("mousedown", (e) => { this.click(e); return false })
+            this.domInstance.addEventListener("mousedown", (e) => {
+                this.click(e);
+                return false
+            })
             this.childArtifacts = children.map(it => {
                 switch (it.meta.twineContext) {
                     case "TREE_BRANCH":
@@ -722,7 +901,11 @@ class IntermediateBranch extends TreeItem {
                         return new IntermediateBranch(listReference, it.title, it.meta, level + 1, this.root, it.children)
                     case "TREE_LEAF": {
                         let className = getTypeConversion("type", "classType", meta.twineContextType)
-                        return new className(listReference, it.title, it.meta, level + 1, this.root)
+                        if (className) {
+                            return new className(listReference, it.title, it.meta, level + 1, this.root)
+                        } else {
+                            return new UnknownArtifact(listReference, it.title, it.meta, level + 1, this.root)
+                        }
                     }
                 }
             })
@@ -731,7 +914,7 @@ class IntermediateBranch extends TreeItem {
 
     click(event) {
         preventDefaultAction(event)
-        if (event.button != getMouseAction("directory", 0)) {
+        if (getMouseAction("directory", event.button) != 0) {
             this.root.click(event)
         } else {
             this.toggle()
@@ -765,6 +948,14 @@ class IntermediateBranch extends TreeItem {
         )
     }
 
+    searchCommand(command, options) {
+        return this.qualifies(
+            someOfAll(this.childArtifacts, it => {
+                return it.searchCommand(command, options)
+            })
+        )
+    }
+
     qualifies(result, withChild) {
         if (result) {
             this.domInstance.classList.remove("__twineArtifact-searchDisqualify")
@@ -778,6 +969,7 @@ class IntermediateBranch extends TreeItem {
 
 class Leaf extends TreeItem {
     root
+
     constructor(listReference, title, meta, level, root) {
         super(meta)
         this.root = root
@@ -814,6 +1006,27 @@ class Leaf extends TreeItem {
         }
     }
 
+    searchCommand(command, options) {
+        switch (command.toLowerCase()) {
+            case "lock":
+            case "locks":
+            case "locked":
+                if (this.lock != null) {
+                    if (options == null) return this.qualifies(true)
+                    if (options === "me") {
+                        return this.qualifies(this.lock.Owned)
+                    } else {
+                        return this.qualifies(this.lock.CreatedBy.match(new RegExp(String.raw`.*${options}.*`)))
+                    }
+                } else return this.qualifies(false)
+                break
+            case "regex":
+            case "rx":
+                if (options == null) return this.qualifies(true)
+                return this.qualifies(new RegExp(String.raw`.*${options}.*`, "i").test(this.meta.search))
+        }
+    }
+
     qualifies(result) {
         if (result) {
             this.domInstance.classList.remove("__twineArtifact-searchDisqualify")
@@ -830,18 +1043,34 @@ class ArtifactLeaf extends Leaf {
     }
 
     getRadialItems(e) {
-        let deployAction
+        let deployAction, downloadAction = {
+            radialIndex: 6,
+            actionId: "download",
+            actions: [{
+                mouse: getMouseAction("download", 0),
+                id: "download",
+                icon: "",
+                title: "Download",
+                type: "DISABLED",
+                callback: () => {
+                    createToast({message: "Todo: Download Artifact"})
+                }
+            }]
+        }
         switch (true) {
             case checkErrorTolerance(7):
                 deployAction = {
                     radialIndex: 3,
+                    actionId: "deploy",
                     actions: [{
                         mouse: getMouseAction("deploy", 0),
                         id: "deploy",
                         icon: "",
                         title: "Deploy",
                         type: "DISABLED",
-                        callback: () => { createToast({message: "Todo: Deploy Artifact"}) }
+                        callback: () => {
+                            createToast({message: "Todo: Deploy Artifact"})
+                        }
                     }]
                 }
                 break
@@ -850,39 +1079,48 @@ class ArtifactLeaf extends Leaf {
         }
         return super.getRadialItems(e).concat([{
             radialIndex: 1,
+            actionId: "copy",
             actions: [{
                 mouse: getMouseAction("copy", 0),
                 id: "copyArtifactId",
                 icon: "",
                 title: "Artifact ID",
-                callback: () => { clipBoardCopy(this.meta.artifactId) }
+                callback: () => {
+                    clipBoardCopy(this.meta.artifactId)
+                }
             }, {
                 mouse: getMouseAction("copy", 1),
                 id: "copyPackageId",
                 icon: "",
                 title: "Package ID",
-                callback: () => { clipBoardCopy(this.meta.packageId) }
+                callback: () => {
+                    clipBoardCopy(this.meta.packageId)
+                }
             }, {
                 mouse: getMouseAction("copy", 2),
                 id: "copyArtifactName",
                 icon: "",
                 title: "Artifact Name",
-                callback: () => { clipBoardCopy(this.meta.artifactName) }
+                callback: () => {
+                    clipBoardCopy(this.meta.artifactName)
+                }
             }, {
                 mouse: getMouseAction("copy", 3),
                 id: "copyPackageName",
                 icon: "",
                 title: "Package Name",
-                callback: () => { clipBoardCopy(this.meta.packageName) }
+                callback: () => {
+                    clipBoardCopy(this.meta.packageName)
+                }
             }]
-        }, deployAction])
+        }, deployAction, downloadAction])
     }
 
     setLock(lock) {
         this.lock = lock
         lock.references.push(this)
 
-        this.domInstanceLockIconReference.setAttribute("data-sap-ui-icon-content", loggedInUser.Name !== lock.createdBy ? " " : "")
+        this.domInstanceLockIconReference.setAttribute("data-sap-ui-icon-content", loggedInUser.Name !== lock.CreatedBy ? " " : "")
         this.domInstanceLockIconReference.style.color = "#aa0808"
         this.domInstanceLockIconReference.style.fontWeight = "700"
         this.domInstanceLockIconReference.classList.add("elementFadeIn")
@@ -891,6 +1129,7 @@ class ArtifactLeaf extends Leaf {
 
     onLockRemoved() {
         this.domInstanceLockIconReference.style.display = "none"
+        this.lock = null
     }
 }
 
@@ -903,8 +1142,9 @@ class IFlowArtifact extends ArtifactLeaf {
         return super.getRadialItems(e).concat([
             {
                 radialIndex: 2,
+                actionId: "typeAction",
                 actions: [{
-                    mouse: getMouseAction("monitoring", 0),
+                    mouse: getMouseAction("typeAction", 0),
                     id: "monitoringInTab",
                     icon: "",
                     title: "Open Monitor",
@@ -912,7 +1152,7 @@ class IFlowArtifact extends ArtifactLeaf {
                         window.location.assign(`/shell/monitoring/Messages/{"edge":{"runtimeLocationId":"cloudintegration"},"status":"ALL","artifact":"${this.meta.artifactId}"}`)
                     }
                 }, {
-                    mouse: getMouseAction("monitoring", 1),
+                    mouse: getMouseAction("typeAction", 1),
                     id: "monitoringNewTab",
                     icon: "",
                     title: "Monitor (New Tab)",
@@ -925,11 +1165,12 @@ class IFlowArtifact extends ArtifactLeaf {
                 }]
             },
             getRadialOpenAction(this.meta),
-            getRadialStageSwitchAction(e),
+            getRadialStageSwitchAction(e, this.meta),
             getUnlockAction(this.meta, this.lock)
         ])
     }
 }
+
 class MessageMappingArtifact extends ArtifactLeaf {
     constructor(listReference, title, meta, level, root) {
         super(listReference, title, meta, level, root)
@@ -939,21 +1180,25 @@ class MessageMappingArtifact extends ArtifactLeaf {
         return super.getRadialItems(e).concat([
             {
                 radialIndex: 2,
+                actionId: "typeAction",
                 actions: [{
-                    mouse: getMouseAction("mappingFile", 0),
+                    mouse: getMouseAction("typeAction", 0),
                     id: "mappingFile",
                     icon: "",
                     title: "Mapping Specs",
                     type: "DISABLED",
-                    callback: () => { createToast({message: "Todo: Deploy Artifact"}) }
+                    callback: () => {
+                        createToast({message: "Todo: Deploy Artifact"})
+                    }
                 }]
             },
             getRadialOpenAction(this.meta),
-            getRadialStageSwitchAction(e),
+            getRadialStageSwitchAction(e, this.meta),
             getUnlockAction(this.meta, this.lock)
         ])
     }
 }
+
 class ValueMappingArtifact extends ArtifactLeaf {
     constructor(listReference, title, meta, level, root) {
         super(listReference, title, meta, level, root)
@@ -962,11 +1207,12 @@ class ValueMappingArtifact extends ArtifactLeaf {
     getRadialItems(e) {
         return super.getRadialItems(e).concat([
             getRadialOpenAction(this.meta),
-            getRadialStageSwitchAction(e),
+            getRadialStageSwitchAction(e, this.meta),
             getUnlockAction(this.meta, this.lock)
         ])
     }
 }
+
 class ScriptCollectionArtifact extends ArtifactLeaf {
     constructor(listReference, title, meta, level, root) {
         super(listReference, title, meta, level, root)
@@ -975,11 +1221,12 @@ class ScriptCollectionArtifact extends ArtifactLeaf {
     getRadialItems(e) {
         return super.getRadialItems(e).concat([
             getRadialOpenAction(this.meta),
-            getRadialStageSwitchAction(e),
+            getRadialStageSwitchAction(e, this.meta),
             getUnlockAction(this.meta, this.lock)
         ])
     }
 }
+
 class FunctionLibraryArtifact extends ArtifactLeaf {
     constructor(listReference, title, meta, level, root) {
         super(listReference, title, meta, level, root)
@@ -988,11 +1235,12 @@ class FunctionLibraryArtifact extends ArtifactLeaf {
     getRadialItems(e) {
         return super.getRadialItems(e).concat([
             getRadialOpenAction(this.meta),
-            getRadialStageSwitchAction(e),
+            getRadialStageSwitchAction(e, this.meta),
             getUnlockAction(this.meta, this.lock)
         ])
     }
 }
+
 class DataTypeArtifact extends ArtifactLeaf {
     constructor(listReference, title, meta, level, root) {
         super(listReference, title, meta, level, root)
@@ -1001,11 +1249,12 @@ class DataTypeArtifact extends ArtifactLeaf {
     getRadialItems(e) {
         return super.getRadialItems(e).concat([
             getRadialOpenAction(this.meta),
-            getRadialStageSwitchAction(e),
+            getRadialStageSwitchAction(e, this.meta),
             getUnlockAction(this.meta, this.lock)
         ])
     }
 }
+
 class MessageTypeArtifact extends ArtifactLeaf {
     constructor(listReference, title, meta, level, root) {
         super(listReference, title, meta, level, root)
@@ -1014,11 +1263,12 @@ class MessageTypeArtifact extends ArtifactLeaf {
     getRadialItems(e) {
         return super.getRadialItems(e).concat([
             getRadialOpenAction(this.meta),
-            getRadialStageSwitchAction(e),
+            getRadialStageSwitchAction(e, this.meta),
             getUnlockAction(this.meta, this.lock)
         ])
     }
 }
+
 class ODataArtifact extends ArtifactLeaf {
     constructor(listReference, title, meta, level, root) {
         super(listReference, title, meta, level, root)
@@ -1027,11 +1277,12 @@ class ODataArtifact extends ArtifactLeaf {
     getRadialItems(e) {
         return super.getRadialItems(e).concat([
             getRadialOpenAction(this.meta),
-            getRadialStageSwitchAction(e),
+            getRadialStageSwitchAction(e, this.meta),
             getUnlockAction(this.meta, this.lock)
         ])
     }
 }
+
 class RESTArtifact extends ArtifactLeaf {
     constructor(listReference, title, meta, level, root) {
         super(listReference, title, meta, level, root)
@@ -1040,11 +1291,12 @@ class RESTArtifact extends ArtifactLeaf {
     getRadialItems(e) {
         return super.getRadialItems(e).concat([
             getRadialOpenAction(this.meta),
-            getRadialStageSwitchAction(e),
+            getRadialStageSwitchAction(e, this.meta),
             getUnlockAction(this.meta, this.lock)
         ])
     }
 }
+
 class SOAPArtifact extends ArtifactLeaf {
     constructor(listReference, title, meta, level, root) {
         super(listReference, title, meta, level, root)
@@ -1053,11 +1305,12 @@ class SOAPArtifact extends ArtifactLeaf {
     getRadialItems(e) {
         return super.getRadialItems(e).concat([
             getRadialOpenAction(this.meta),
-            getRadialStageSwitchAction(e),
+            getRadialStageSwitchAction(e, this.meta),
             getUnlockAction(this.meta, this.lock)
         ])
     }
 }
+
 class ArchiveArtifact extends ArtifactLeaf {
     constructor(listReference, title, meta, level, root) {
         super(listReference, title, meta, level, root)
@@ -1066,12 +1319,25 @@ class ArchiveArtifact extends ArtifactLeaf {
     getRadialItems(e) {
         return super.getRadialItems(e).concat([
             getRadialOpenAction(this.meta),
-            getRadialStageSwitchAction(e),
+            getRadialStageSwitchAction(e, this.meta),
             getUnlockAction(this.meta, this.lock)
         ])
     }
 }
+
 class IntegrationAdapterArtifact extends ArtifactLeaf {
+    constructor(listReference, title, meta, level, root) {
+        super(listReference, title, meta, level, root)
+    }
+}
+
+class APIArtifact extends ArtifactLeaf {
+    constructor(listReference, title, meta, level, root) {
+        super(listReference, title, meta, level, root)
+    }
+}
+
+class UnknownArtifact extends ArtifactLeaf {
     constructor(listReference, title, meta, level, root) {
         super(listReference, title, meta, level, root)
     }
@@ -1086,23 +1352,29 @@ class APIProxyArtifact extends Leaf {
         let path = `/shell/configure/api/${this.meta.artifactId}`
         return super.getRadialItems(e).concat([{
             radialIndex: 1,
+            actionId: "copy",
             actions: [{
                 mouse: getMouseAction("copy", 0),
                 id: "copyArtifactId",
                 icon: "",
                 title: "Artifact ID",
-                callback: () => { clipBoardCopy(this.meta.artifactId) }
+                callback: () => {
+                    clipBoardCopy(this.meta.artifactId)
+                }
             }, {
                 mouse: getMouseAction("copy", 1),
                 id: "copyArtifactName",
                 icon: "",
                 title: "Artifact Name",
-                callback: () => { clipBoardCopy(this.meta.artifactName) }
+                callback: () => {
+                    clipBoardCopy(this.meta.artifactName)
+                }
             }]
-        },{
+        }, {
             radialIndex: 0,
+            actionId: "open",
             actions: [{
-                mouse: getMouseAction("open", 0),
+                mouse: 0,
                 id: "openInTab",
                 icon: "",
                 title: "Open",
@@ -1110,7 +1382,7 @@ class APIProxyArtifact extends Leaf {
                     window.location.assign(path)
                 }
             }, {
-                mouse: getMouseAction("open", 1),
+                mouse: 1,
                 id: "openNewTab",
                 icon: "",
                 title: "New Tab",
@@ -1121,7 +1393,7 @@ class APIProxyArtifact extends Leaf {
                     })
                 }
             }, {
-                mouse: getMouseAction("open", 2),
+                mouse: 2,
                 id: "copyLink",
                 icon: "",
                 title: "Copy Link",
@@ -1133,9 +1405,77 @@ class APIProxyArtifact extends Leaf {
     }
 }
 
+
+
+class SecureMaterialArtifact extends Leaf {
+    constructor(listReference, title, meta, level, root) {
+        super(listReference, title, meta, level, root)
+    }
+
+    getRadialItems(e) {
+        return super.getRadialItems(e).concat([{
+            radialIndex: 0,
+            actionId: "copy",
+            actions: [{
+                mouse: getMouseAction("copy", 0),
+                id: "copyArtifactId",
+                icon: "",
+                title: "Copy",
+                callback: () => {
+                    clipBoardCopy(this.meta.secureMaterialId)
+                }
+            }]
+        }, checkErrorTolerance(7) ? {
+            radialIndex: 1,
+            actionId: "delete",
+            actions: [{
+                mouse: getMouseAction("delete", 0),
+                id: "deleteSecureMaterial",
+                icon: "",
+                title: "Delete",
+                type: "NEGATIVE",
+                callback: () => {
+                    this.delete()
+                }
+            }]
+        } : getLockedItem("delete", "delete", "", "Error tolerance:&nbsp;<span style='color: #aa0808'>7</span>", 1)])
+    }
+	
+	delete() {
+        let dialog = createConfirmDialog({
+            actionTitle: "Confirm",
+            actionText: `Do you really want to delete secure material ${this.meta.artifactId}?`,
+            confirm: {
+                id: `__twine_delete_secure_material_confirm`,
+                title: "Delete",
+                type: "NEGATIVE",
+                onBar: true
+            },
+            cancel: {id: `__twine_delete_secure_material_cancel`, title: "Cancel", onBar: true}
+        }, (e) => {
+			callXHR("POST", operationsUrl() + "/com.sap.it.km.api.commands.UndeployCredentialsCommand", `artifactIds=${this.meta.artifactId}&tenantId=${this.meta.tenantId}`, "application/x-www-form-urlencoded; charset=UTF-8", true).then(() => {
+				createToast({message: `Secure Material ${this.meta.artifactId} was deleted`})
+				this.domInstance.remove()
+			}).catch((e) => {
+				console.log(e)
+				createToast({message: "Couldn't delete secure material"})
+			})
+            dialog.remove()
+            popoverLayerBlocker.style.zIndex = "64"
+        },(e) => {
+            dialog.remove()
+            popoverLayerBlocker.style.zIndex = "64"
+        })
+        popoverLayer.insertAdjacentElement("beforeend", dialog)
+
+        popoverLayerBlocker.style.zIndex = "69"
+    }
+}
+
 class RadialMenu {
     static instance
     domInstance
+
     constructor() {
         this.domInstance = document.createElement("div")
         this.domInstance.id = "__twine_RadialMenu"
@@ -1146,7 +1486,7 @@ class RadialMenu {
 
         window.addEventListener("selectstart", preventDefaultAction)
         window.addEventListener("contextmenu", preventDefaultAction)
-        if(getRadialMode() !== "DOUBLEACTION") {
+        if (getRadialMode() !== "DOUBLEACTION") {
             document.addEventListener("mouseup", RadialMenu.instance.hide)
         } else {
             document.addEventListener("mousedown", RadialMenu.instance.hide)
@@ -1164,7 +1504,11 @@ class RadialMenu {
                     angle = (-Math.PI / 2) + ((i != 0 ? (i - 1) : 6) / 8) * (2 * Math.PI);
                     x = radius * Math.cos(angle)
                     y = radius * Math.sin(angle)
-                    let menuItem = createRadialAvatarMashup({item: menuItems.find(it => { return it.radialIndex == i}) ?? {}, x: x, y: y, button: event.button, center: true})
+                    let menuItem = createRadialAvatarMashup({
+                        item: menuItems.find(it => {
+                            return it.radialIndex == i
+                        }) ?? {}, x: x, y: y, button: event.button, center: true
+                    })
                     this.domInstance.appendChild(menuItem)
                 }
                 break
@@ -1176,11 +1520,17 @@ class RadialMenu {
                         angle = (-Math.PI / 2) + ((i - 1) / (8)) * (2 * Math.PI);
                         x = radius * Math.cos(angle)
                         y = radius * Math.sin(angle)
-                        let menuItem = createRadialAvatarMashup({item: menuItems.find(it => { return it.radialIndex == i}) ?? {}, x: x, y: y, button: event.button, center: true})
+                        let menuItem = createRadialAvatarMashup({
+                            item: menuItems.find(it => {
+                                return it.radialIndex == i
+                            }) ?? {}, x: x, y: y, button: event.button, center: true
+                        })
                         this.domInstance.appendChild(menuItem)
                     } else {
                         this.domInstance.appendChild(createRadialAvatarMashup({
-                            item: menuItems.find(it => { return it.radialIndex == 0 }) ?? {},
+                            item: menuItems.find(it => {
+                                return it.radialIndex == 0
+                            }) ?? {},
                             x: 0,
                             y: 0,
                             button: event.button
@@ -1218,8 +1568,9 @@ function getRadialOpenAction(meta) {
     let path = `/shell/design/contentpackage/${meta.packageId}/${getTypeConversion("type", "urlType", meta.twineContextType)}/${meta.artifactId}`
     return {
         radialIndex: 0,
+        actionId: "open",
         actions: [{
-            mouse: getMouseAction("open", 0),
+            mouse: 0,
             id: "openInTab",
             icon: "",
             title: "Open",
@@ -1227,18 +1578,15 @@ function getRadialOpenAction(meta) {
                 window.location.assign(path)
             }
         }, {
-            mouse: getMouseAction("open", 1),
+            mouse: 1,
             id: "openNewTab",
             icon: "",
             title: "New Tab",
             callback: () => {
-                chrome.runtime.sendMessage({
-                    type: "OPEN_IN_TAB",
-                    url: "https://" + window.location.host + path
-                })
+                openLinkInNewTab("https://" + window.location.host + path)
             }
         }, {
-            mouse: getMouseAction("open", 2),
+            mouse: 2,
             id: "copyLink",
             icon: "",
             title: "Copy Link",
@@ -1248,24 +1596,26 @@ function getRadialOpenAction(meta) {
         }]
     }
 }
-function getRadialStageSwitchAction(event) {
+
+function getRadialStageSwitchAction(event, meta) {
     let stageSwitchActions
-    if(checkQuicklink("stageSwitch") && tenantVariables.globalEnvironment.tenants.length > 1) {
+    if (checkQuicklink("stageSwitch") && tenantVariables.globalEnvironment.tenants.length > 1) {
         let mouseAction = getMouseAction("stageSwitch", event.button)
         let stageSwitchItems = tenantVariables.globalEnvironment.tenants
             .filter(it => it.id !== tenantVariables.currentTenant.id)
             .sort((a, b) => a.errorTolerance > b.errorTolerance)
             .map((element, index) => {
-                return (!((tenantVariables.currentTenant.server && !element.server) || (!tenantVariables.currentTenant.server && element.server))) ? {
+                return (!((tenantVariables.currentTenant.datacenter && !element.datacenter) || (!tenantVariables.currentTenant.datacenter && element.datacenter))) ? {
                     mouse: event.button,
                     id: "stage_" + element.id,
-                    title: mouseAction === 0 ? `Open (${element.name})` : mouseAction === 1 ? `New Tab (${element.name})` :`Copy Link (${element.name})`,
+                    title: mouseAction === 0 ? `Open (${element.name})` : mouseAction === 1 ? `New Tab (${element.name})` : `Copy Link (${element.name})`,
                     color: element.color,
                     icon: "",
                     callback: (event) => {
-                        let url = `${window.location.protocol}//${window.location.host.replace(new RegExp(String.raw`${tenantVariables.currentTenant.id}`, "g"), element.id)}${window.location.pathname}${window.location.search}`
-                        if (tenantVariables.currentTenant.server) {
-                            url = url.replace(/(?<=cfapps\.).*?(?=\.hana)/, element.server)
+                        let url = `${window.location.protocol}//${window.location.host.replace(new RegExp(String.raw`${tenantVariables.currentTenant.id}`, "g"), element.id)}/shell/design/contentpackage/${meta.packageId}/${getTypeConversion("type", "urlType", meta.twineContextType)}/${meta.artifactId}`
+                        if (tenantVariables.currentTenant.datacenter) {
+
+                            url = url.replace(/(?<=cfapps\.).*?(?=\.hana)/, element.datacenter).replace(/(?<=\.integrationsuite).*?(?=\.cfapps)/, element.system)
                         }
                         if (mouseAction == 1) {
                             chrome.runtime.sendMessage({
@@ -1280,7 +1630,9 @@ function getRadialStageSwitchAction(event) {
                     }
                 } : null
             })
-            .filter(it => { return it != null })
+            .filter(it => {
+                return it != null
+            })
         if (stageSwitchItems.length > 0) {
             stageSwitchActions = {
                 radialIndex: 5,
@@ -1291,19 +1643,23 @@ function getRadialStageSwitchAction(event) {
 
     return stageSwitchActions
 }
+
 function getUnlockAction(meta, lock) {
     if (lock != null) {
         switch (true) {
             case (checkErrorTolerance(4)):
                 return {
                     radialIndex: 4,
+                    actionId: "unlock",
                     actions: [{
                         mouse: getMouseAction("unlock", 0),
                         id: "unlock",
                         icon: "",
                         title: "Unlock",
                         type: "NEGATIVE",
-                        callback: () => { lock.tryRemove() }
+                        callback: () => {
+                            lock.tryRemove()
+                        }
                     }]
                 }
             case (!checkErrorTolerance(4)):
@@ -1321,9 +1677,10 @@ class Dialog {
     domContent
     dialogContext
     buttons = []
+
     constructor(title) {
         this.domInstance = createElementFrom(`
-            <div class="sapMDialog sapMDialog-CTX sapMPopup-CTX sapMMessageDialog sapUiShd sapUiUserSelectable sapMDialogOpen" style="position: absolute; visibility: visible; z-index: 70 !important; display: block; margin: auto !important; left: 0; right: 0; top: 0; bottom: 0; max-height: fit-content; max-width: fit-content">
+            <div class="sapMDialog sapMDialog-CTX sapMPopup-CTX sapMMessageDialog sapUiShd sapUiUserSelectable sapMDialogOpen" style="position: absolute; visibility: visible; z-index: 70 !important; display: block; margin: auto !important; left: 0; right: 0; top: 0; bottom: 0; max-height: max-content; max-width: max-content">
                 <span class="sapMDialogFirstFE"></span>
                 <header>
                     <div class="sapMDialogTitleGroup">
@@ -1354,7 +1711,6 @@ class Dialog {
         `)
         this.domOptions = this.domInstance.querySelector("div > footer > div")
         this.domContent = this.domInstance.querySelector("div > section")
-        //this.domContent.appendChild(new EnvironmentSettingsContainer().domInstance)
         return this
     }
 
@@ -1368,12 +1724,14 @@ class Dialog {
     }
 
     withContent(content) {
-        this.domContent.innerHTML = content
+        this.dialogContext = content
+        this.domContent.appendChild(content.domInstance)
         return this
     }
 
     show() {
         popoverLayer.insertAdjacentElement("beforeend", this.domInstance)
+        popoverLayerBlocker.style.zIndex = "64"
         popoverLayerBlocker.style.visibility = "visible"
         popoverLayerBlocker.style.display = "block"
     }
@@ -1385,8 +1743,17 @@ class Dialog {
     }
 }
 
+class SimpleElement {
+    domInstance
+
+    constructor(content) {
+        this.domInstance = createElementFrom(content)
+    }
+}
+
 class Button {
     domInstance
+
     constructor(title, type, icon, iconFirst, transparent, onBar, callback) {
         this.domInstance = document.createElement("button")
         this.domInstance.classList.add("sapMBtnBase", "sapMBtn", "elementFadeIn")
@@ -1468,7 +1835,9 @@ class UnlockElementHelper {
 
     constructor(lock, iconFirst, transparent, onBar, callback) {
         this.callback = callback
-        this.domInstance = new Button("Unlock", "NEGATIVE", "", iconFirst, transparent, onBar, () => { lock.tryRemove() }).domInstance
+        this.domInstance = new Button("Unlock", "NEGATIVE", "", iconFirst, transparent, onBar, () => {
+            lock.tryRemove()
+        }).domInstance
         lock.references.push(this)
     }
 
@@ -1477,245 +1846,1407 @@ class UnlockElementHelper {
     }
 }
 
-class DialogContext {
-    constructor() {}
-
-    output() {
-        let globalSettings = {}
-        let environmentSettings = {}
-        return {}
-    }
-
-    options() {
-        return []
-    }
-}
-
-class EnvironmentSettingsContainer extends DialogContext {
+class SettingsDialog {
     domInstance
-    domGlobalSettingsContainer
-    domEnvironmentSettingsTabs
+    domOptions
+    domContent
+    tabs
+    buttons = []
+    settings = configuration.sap.integrationSuite
+
     constructor() {
-        super()
+        let runStart = window.performance.now()
+
+        this.tabs = [new EnvironmentsTab(this), new GlobalSettingsTab(this)]
         this.domInstance = createElementFrom(`
-            <div class="sapMTabContainer sapUiResponsiveContentPadding sapUiResponsivePadding--header">
-                <div class="sapMTabStripContainer sapUi-Std-PaddingXL">
-                    <div class="sapMTabStrip sapContrastPlus">
-                        <div class="sapMTSLeftOverflowButtons"></div>
-                        <div class="sapMTSTabsContainer sapUiScrollDelegate" tabindex="0" style="overflow: hidden;">
-                            <div class="sapMTSTabs">
-                                <div class="sapMTabStripItem sapMTabStripItemSelected" tabindex="-1">
-                                    <div class="sapMTSTexts">
-                                        <div class="sapMTabStripItemAddText"></div>
-                                        <div class="sapMTabStripItemLabel">
-                                            Development
-                                            <span class="sapMTabStripItemModifiedSymbol"></span>
-                                        </div>
-                                    </div>
-                                    <div class="sapMTSItemCloseBtnCnt">
-                                        <button tabindex="-1" title="Close"
-                                                class="sapMBtnBase sapMBtn sapMTabStripSelectListItemCloseBtn">
-                                            <span class="sapMBtnInner sapMBtnHoverable sapMFocusable sapMBtnIconFirst sapMBtnTransparent">
-                                                <span data-sap-ui-icon-content=""
-                                                      class="sapUiIcon sapUiIconMirrorInRTL sapMBtnCustomIcon sapMBtnIcon sapMBtnIconLeft"
-                                                      style="font-family: SAP-icons;"></span>
-                                            </span>
-                                            <span class="sapUiInvisibleText">Close</span>
-                                        </button>
+            <div class="sapMDialog sapMDialog-CTX sapMPopup-CTX sapMMessageDialog sapUiShd sapUiUserSelectable sapMDialogOpen" style="position: absolute; visibility: visible; z-index: 65 !important; display: block; margin: auto !important; left: 5%; right: 5%; top: 5%; bottom: 5%;">
+                <span class="sapMDialogFirstFE"></span>
+                <header>
+                    <div class="sapMDialogTitleGroup">
+                        <div class="sapMIBar sapMIBar-CTX sapMBar sapMContent-CTX sapMBar-CTX sapMHeader-CTX sapMBarTitleAlignAuto">
+                            <div class="sapMBarLeft sapMBarContainer sapMBarEmpty"></div>
+                            <div class="sapMBarMiddle">
+                                <div class="sapMBarPH sapMBarContainer" style="width: 100%;">
+                                    <h1 class="sapMTitle sapMTitleStyleAuto sapMTitleNoWrap sapUiSelectable sapMTitleMaxWidth sapMDialogTitle sapMBarChild">
+                                        <span dir="auto">Twine Settings</span>
+                                    </h1>
+                                </div>
+                            </div>
+                            <div class="sapMBarRight sapMBarContainer sapMBarEmpty"></div>
+                        </div>
+                        <span class="sapUiInvisibleText"></span>
+                    </div>
+                </header>
+                <section class="sapMDialogSection sapUiScrollDelegate disableScrollbars" style="overflow: auto;">
+                    <div class="sapMTabContainer sapUiResponsiveContentPadding sapUiResponsivePadding--header">
+                        <div class="sapMTabStripContainer sapUi-Std-PaddingS">
+                            <div class="sapMTabStrip sapContrastPlus">
+                                <div class="sapMTSLeftOverflowButtons"></div>
+                                <div class="sapMTSTabsContainer sapUiScrollDelegate" tabindex="0" style="overflow: hidden;">
+                                    <div class="sapMTSTabs"></div>
+                                </div>
+                                <div class="sapMTSRightOverflowButtons"></div>
+                                <div class="sapMTSTouchArea">
+                                    <div tabindex="-1"
+                                         class="sapMSlt sapMSltIconOnly sapMSltAutoAdjustedWidth sapMSltWithIcon sapMSltHoverable sapMSltWithArrow sapMTSOverflowSelect"
+                                         style="max-width: 2.5rem;">
+                                        <div tabindex="0" title="Opened Tabs" class="sapUiPseudoInvisibleText sapMSltHiddenSelect"></div>
+                                        <input name="" value="" tabindex="-1" class="sapUiPseudoInvisibleText">
+                                        <span title="Opened Tabs" class="sapMSltLabel sapUiPseudoInvisibleText"></span>
+                                        <span data-sap-ui-icon-content="" title="Opened Tabs"
+                                              class="sapMSltIcon sapUiIcon sapUiIconMirrorInRTL" style="font-family: SAP-icons;"></span>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="sapMTSRightOverflowButtons"></div>
-                        <div class="sapMTSTouchArea">
-                            <div tabindex="-1"
-                                 class="sapMSlt sapMSltIconOnly sapMSltAutoAdjustedWidth sapMSltWithIcon sapMSltHoverable sapMSltWithArrow sapMTSOverflowSelect"
-                                 style="max-width: 2.5rem;">
-                                <div tabindex="0" title="Opened Tabs" class="sapUiPseudoInvisibleText sapMSltHiddenSelect"></div>
-                                <input name="" value="" tabindex="-1" class="sapUiPseudoInvisibleText">
-                                <span title="Opened Tabs" class="sapMSltLabel sapUiPseudoInvisibleText"></span>
-                                <span data-sap-ui-icon-content="" title="Opened Tabs"
-                                      class="sapMSltIcon sapUiIcon sapUiIconMirrorInRTL" style="font-family: SAP-icons;"></span>
-                            </div>
-                            <button title="Add New Tab" class="sapMBtnBase sapMBtn sapMTSAddNewTabBtn">
-                                <span class="sapMBtnInner sapMBtnHoverable sapMFocusable sapMBtnIconFirst sapMBtnTransparent">
-                                    <span data-sap-ui-icon-content=""
-                                          class="sapUiIcon sapUiIconMirrorInRTL sapMBtnCustomIcon sapMBtnIcon sapMBtnIconLeft"
-                                          style="font-family: SAP-icons;"></span>
-                                </span>
-                                <span class="sapUiInvisibleText">Add New Tab</span>
-                            </button>
-                        </div>
                     </div>
-                </div>
-                <div class="sapMTabContainerContent sapMTabContainerContentList">
-                    <div class="sapMTabContainerInnerContent">
-                        <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
-                            <span class="sapMLabelTextWrapper">
-                                <bdi>Stage Settings:</bdi>
-                            </span>
-                            <span data-colon=":" class="sapMLabelColonAndRequired"></span>
-                        </span>
-            
-                        <div class="sapMInputBase sapMInputBaseHeightMargin sapMInput sapMInputWithDescription"
-                             style="width: 100%;display: flex;align-items: baseline;justify-content: flex-start;">
-                            <div class="sapMInputDescriptionWrapper" style="width: 100px;">
-                                <span class="sapMInputDescriptionText" style="padding-right: 0.5rem;">Tag</span>
-                            </div>
-                            <div class="sapMInputBaseContentWrapper">
-                                <input type="text" autocomplete="off" class="sapMInputBaseInner"
-                                       placeholder="E.g. DEV, Production etc.">
-                            </div>
-                        </div>
-            
-                        <div class="sapMInputBase sapMInputBaseHeightMargin sapMInput sapMInputWithDescription"
-                             style="width: 100%;display: flex;align-items: baseline;justify-content: flex-start;">
-                            <div class="sapMInputDescriptionWrapper" style="width: 100px">
-                                <span class="sapMInputDescriptionText">Color</span>
-                            </div>
-                            <div class="sapMInputBaseContentWrapper">
-                                <input type="color" onchange="clickColor(0, -1, -1, 5)" value="#000000"
-                                       style="width:100%;">
-                            </div>
-                        </div>
-                        <br>
-                        <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
-                            <span class="sapMLabelTextWrapper">
-                                <bdi>Tenant URL:</bdi>
-                            </span>
-                            <span data-colon=":" class="sapMLabelColonAndRequired"></span>
-                        </span>
-                        <div class="sapMInputBase sapMInputBaseHeightMargin sapMInput sapMInputWithDescription"
-                             style="width: 100%;display: flex;align-items: baseline;justify-content: flex-start;">
-                            <div class="sapMInputDescriptionWrapper" style="">
-                                <span class="sapMInputDescriptionText" style="padding-right: 0.5rem;">https://</span>
-                            </div>
-                            <div class="sapMInputBaseContentWrapper" style="">
-                                <input type="text" autocomplete="off" class="sapMInputBaseInner" placeholder="Subdomain">
-                            </div>
-                            <div class="sapMInputDescriptionWrapper" style="">
-                                <span class="sapMInputDescriptionText" style="padding-right: 0.5rem;">
-                                    .integrationsuite<i>(-trial)</i>.cfapps.
-                                </span>
-                            </div>
-                            <div class="sapMInputBaseContentWrapper" style="">
-                                <input type="text" autocomplete="off" class="sapMInputBaseInner" placeholder="Server">
-                            </div>
-                            <div class="sapMInputDescriptionWrapper" style="">
-                                <span class="sapMInputDescriptionText">.hana.ondemand.com</span>
-                            </div>
-                        </div>
+                </section>
+                <footer class="sapMDialogFooter">
+                    <div class="sapMIBar sapMTBInactive sapMTB sapMTBNewFlex sapMTBStandard sapMTB-Auto-CTX sapMOTB sapMTBNoBorders sapMIBar-CTX sapMFooter-CTX">
+                        <div class="sapMTBSpacer sapMTBSpacerFlex sapMBarChild sapMBarChildFirstChild"></div>
                     </div>
-                </div>
+                </footer>
+                <span class="sapMDialogLastFE"></span>
             </div>
         `)
+        this.domOptions = this.domInstance.querySelector("div > footer > div")
+        this.domInstanceStrip = this.domInstance.querySelector("div > section > div > div > div > div:nth-of-type(2) > div")
+        this.tabs.forEach(it => this.domInstanceStrip.appendChild(it.domInstanceHeader))
+
+        this.domInstanceContainer = this.domInstance.querySelector("div > section > div")
+        this.tabs.forEach(it => this.domInstanceContainer.appendChild(it.domInstanceContent))
+        this.domOptions.insertAdjacentElement("beforeend", new Button("Copy Config", "INVERTED", "", true, false, true, () => {
+            clipBoardCopy(JSON.stringify(configuration))
+        }).domInstance)
+        this.domOptions.insertAdjacentElement("beforeend", new Button("Save", "INVERTED", null, false, false, true, () => {
+            this.save()
+        }).domInstance)
+        this.domOptions.insertAdjacentElement("beforeend", new Button("Close", null, null, false, false, true, () => this.close()).domInstance)
+
+        elapsedTime += window.performance.now() - runStart
+        return this
     }
 
-
-    output() {
-        this.domGlobalSettingsContainer
+    show() {
+        popoverLayer.insertAdjacentElement("beforeend", this.domInstance)
+        popoverLayerBlocker.style.zIndex = "64"
+        popoverLayerBlocker.style.visibility = "visible"
+        popoverLayerBlocker.style.display = "block"
     }
 
     save() {
+        if (this.tabs[0].environments.every(it => { return it.isValid() })) {
+            this.settings = this.tabs[1].getSaveOutput()
+            let environments = this.tabs[0].getSaveOutput()
 
+            this.settings.sap.integrationSuite.environments = environments.filter(it => it.owner != "Other Environments")
+            this.settings.sap.integrationSuite.trialTenantSettings = environments.find(it => it.owner == "Other Environments").tenants.find(it => it.name == "Trial")
+            this.settings.sap.integrationSuite.undefinedTenantSettings = environments.find(it => it.owner == "Other Environments").tenants.find(it => it.name == "Unknown")
+            if (compareVersion(this.settings.version, configuration.version) != 0) {
+                clipBoardCopy(JSON.stringify(configuration))
+                createToast({message: "Previous config has been copied to clipboard. Just in case"})
+            }
+            configuration = this.settings
+            chrome.runtime.sendMessage({type: "CFG_CHANGE", configuration: configuration}).then(resolve => {
+                if (resolve.status < 0) {
+                    error("Couldn't save configuration")
+                    console.error(resolve)
+                    createToast("Couldn't save<br>Please check the developer console for possible causes")
+                } else {
+                    info(resolve.message)
+                    log("Configuration saved successfully")
+                    createToast({message: "Saved!<br>Most changes need a refresh to take effect"})
+                }
+            })
+        } else {
+            let invalidEnvs = this.tabs[0].environments.filter(it => { return !it.isValid() })
+            createToast({message: `<b>Please correct configurations for the following environments first</b><br>${invalidEnvs.map(it => {
+                    return it.getDataset().owner+" - "+it.tenants.filter(it => { return !it.isValid() }).map(it => it.getDataset().name).join(", ")
+                }).join("<br>")}`
+            })
+        }
+    }
+
+    close() {
+        this.domInstance.remove()
+        popoverLayerBlocker.style.visibility = "hidden"
+        popoverLayerBlocker.style.display = "none"
+    }
+
+    switchTab(stripId) {
+        this.tabs.forEach(it => {
+            if (it.stripId == stripId) {
+                it.domInstanceContent.style.display = "block"
+                it.domInstanceHeader.classList.add("sapMTabStripItemSelected")
+            } else {
+                it.domInstanceContent.style.display = "none"
+                it.domInstanceHeader.classList.remove("sapMTabStripItemSelected")
+            }
+        })
     }
 }
-class EnvironmentSettingsTab {
+
+class SettingsDialogTab {
+    stripId
+    active = false
     domInstanceHeader
     domInstanceContent
-    environment
-    constructor(environment) {
-        this.environment = environment
+    domInstanceContentContainer
+    root
+    valid
+
+    constructor(root) {
+        this.root = root
+    }
+
+    select() {
+        this.root.switchTab(this.stripId)
+    }
+}
+
+class GlobalSettingsTab extends SettingsDialogTab {
+    valid = true
+    configObjects = new Map()
+    radialModeSelection
+
+    constructor(root) {
+        super(root)
+        this.stripId = "globalSettings"
         this.domInstanceHeader = createElementFrom(`
-            <div class="sapMTabStripItem sapMTabStripItemSelected" tabindex="-1">
+            <div class="sapMTabStripItem" tabindex="-1">
                 <div class="sapMTSTexts">
                     <div class="sapMTabStripItemAddText"></div>
                     <div class="sapMTabStripItemLabel">
-                        Development
-                        <span class="sapMTabStripItemModifiedSymbol"></span>
+                        General
+                        <!--<span class="sapMTabStripItemModifiedSymbol"></span>-->
                     </div>
                 </div>
-                <div class="sapMTSItemCloseBtnCnt">
+            </div>
+        `)
+        this.domInstanceHeader.addEventListener("click", () => {
+            this.select()
+        })
+        this.domInstanceContent = createElementFrom(`
+            <div class="sapMTabContainerContent sapMTabContainerContentList disableScrollbars">
+                <div class="sapMTabContainerInnerContent disableScrollbars">
+                    <div class="sapUiRespGrid sapUiRespGridMedia-Std-LargeDesktop sapUiRespGridHSpace0 sapUiRespGridVSpace0 sapUiFormResGridMain sapUiRespGridOverflowHidden">
+                    </div>
+                </div>
+            </div>
+        `)
+        this.domInstanceContent.style.display = "none"
+
+
+        let contentNode = this.domInstanceContent.querySelector("div")
+        this.domInstanceContentContainer = contentNode
+
+
+        this.addObject(new SimpleCheckBox("Enable Shortcuts", checkCloudIntegrationFeature("quickAccess"), true), "shortcutsEnabled", true)
+        /*contentNode.appendChild(createElementFrom(`
+            <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
+                <span class="sapMLabelTextWrapper">
+                    <bdi style="font-weight: bold">Common Shortcuts</bdi>
+                </span>
+                <span data-colon=":" class="sapMLabelColonAndRequired"></span>
+            </span>
+        `))*/
+
+        this.addObject(new SimpleCheckBox("Credentials", checkQuicklink("credentials")), "shortcutCredentials")
+        this.addObject(new SimpleCheckBox("Queues", checkQuicklink("queues")), "shortcutQueues")
+        this.addObject(new SimpleCheckBox("Monitoring", checkQuicklink("monitoring")), "shortcutMonitoring")
+        this.addObject(new SimpleCheckBox("Certificates", checkQuicklink("certificates")), "shortcutCertificates")
+        this.addObject(new SimpleCheckBox("Datastores", checkQuicklink("datastores")), "shortcutDatastores")
+        this.addObject(new SimpleCheckBox("Connectivity Test", checkQuicklink("connectivityTest")), "shortcutConnectivityTest")
+        this.addObject(new SimpleCheckBox("Locks", checkQuicklink("locks")), "shortcutLocks")
+        this.addObject(new SimpleCheckBox("Stage Switch", checkQuicklink("stageSwitch")), "shortcutStageSwitch")
+        this.addObject(new SimpleCheckBox("Check Naming Conventions (Not implemented yet)", checkQuicklink("checkNamingConventions")), "shortcutCheckNamingConventions")
+
+
+
+        this.addObject(new SimpleCheckBox("Enable Artifact Lists", checkCloudIntegrationFeature("integrationContentQuickAccess"), true), "artifactShortcutsEnabled", true)
+        this.addObject(new SimpleCheckBox("Enable Decorations", checkIntegrationSuiteFeature("decorations"), true), "decorationsEnabled", true)
+        this.addObject(new SimpleCheckBox("Stage Tag", configuration?.sap?.integrationSuite?.decorations?.tenantStage), "decorationsStage")
+        this.addObject(new SimpleCheckBox("Company Logo", configuration?.sap?.integrationSuite?.decorations?.companyLogo), "decorationsLogo")
+        this.addObject(new SimpleCheckBox("Enable Inline Documentation", checkCloudIntegrationFeature("documentation"), true), "inlineDocumentationEnabled", true)
+        this.addObject(new SimpleCheckBox("Enable Editing", configuration?.sap?.integrationSuite?.cloudIntegration?.documentation?.enableEditingDocumentation), "inlineDocumentationEditable")
+        this.addObject(new SimpleCheckBox("AI Summary", configuration?.sap?.integrationSuite?.cloudIntegration?.documentation?.aiSummary), "inlineDocumentationAISummary")
+        this.addObject(new SimpleCheckBox("Enable Unlock Buttons", checkCloudIntegrationFeature("unlock"), true), "unlockEnabled", true)
+
+        contentNode.appendChild(document.createElement("br"))
+        this.addObject(createElementFrom(`
+            <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
+                <span class="sapMLabelTextWrapper">
+                    <bdi style="font-weight: bold;">Radial Menu Mode</bdi>
+                </span>
+                <span data-colon=":" class="sapMLabelColonAndRequired"></span>
+            </span>
+        `))
+        this.radialModeSelection = new RadialModeSelector()
+        this.addObject(this.radialModeSelection, "radialMode")
+        contentNode.appendChild(document.createElement("br"))
+        this.addObject(createElementFrom(`
+            <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
+                <span class="sapMLabelTextWrapper">
+                    <bdi style="font-weight: bold;">Mouse Button Mappings</bdi>
+                </span>
+                <span data-colon=":" class="sapMLabelColonAndRequired"></span>
+            </span>
+        `))
+        contentNode.appendChild(document.createElement("br"))
+        this.addObject(createElementFrom(`
+            <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
+                <span class="sapMLabelTextWrapper">
+                    <bdi">(Correspond to left, middle, right click)<br>Other actions can be reached via scrolling</bdi>
+                </span>
+                <span data-colon=":" class="sapMLabelColonAndRequired"></span>
+            </span>
+        `))
+
+        contentNode.appendChild(document.createElement("br"))
+        contentNode.appendChild(document.createElement("br"))
+        this.addObject(createElementFrom(`
+            <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
+                <span class="sapMLabelTextWrapper">
+                    <bdi">Folders</bdi>
+                </span>
+                <span data-colon=":" class="sapMLabelColonAndRequired"></span>
+            </span>
+        `))
+        this.addObject(
+            new MouseButtonSelector(
+                "directory",
+                {0: "Toggle", 1: "See Other Actions", 2: "See Other Actions"},
+                Object.values(configuration?.sap?.integrationSuite?.cloudIntegration?.mouseMapping?.directory ?? [0, 1, 2])
+            ), "mouseMappingDirectory"
+        )
+
+        contentNode.appendChild(document.createElement("br"))
+        this.addObject(createElementFrom(`
+            <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
+                <span class="sapMLabelTextWrapper">
+                    <bdi">Deploy</bdi>
+                </span>
+                <span data-colon=":" class="sapMLabelColonAndRequired"></span>
+            </span>
+        `))
+        this.addObject(
+            new MouseButtonSelector(
+                "deploy",
+                {0: "Deploy", 1: "Default", 2: "Default"},
+                Object.values(configuration?.sap?.integrationSuite?.cloudIntegration?.mouseMapping?.deploy ?? [0, 1, 2])
+            ), "mouseMappingDeploy"
+        )
+
+        contentNode.appendChild(document.createElement("br"))
+        this.addObject(createElementFrom(`
+            <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
+                <span class="sapMLabelTextWrapper">
+                    <bdi">Copy</bdi>
+                </span>
+                <span data-colon=":" class="sapMLabelColonAndRequired"></span>
+            </span>
+        `))
+        this.addObject(
+            new MouseButtonSelector(
+                "copy",
+                {0: "Artifact Id", 1: "Package Id", 2: "Artifact Name"},
+                Object.values(configuration?.sap?.integrationSuite?.cloudIntegration?.mouseMapping?.copy ?? [0, 1, 2])
+            ), "mouseMappingCopy"
+        )
+
+        contentNode.appendChild(document.createElement("br"))
+        this.addObject(createElementFrom(`
+            <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
+                <span class="sapMLabelTextWrapper">
+                    <bdi">Open</bdi>
+                </span>
+                <span data-colon=":" class="sapMLabelColonAndRequired"></span>
+            </span>
+        `))
+        this.addObject(
+            new MouseButtonSelector(
+                "open",
+                {0: "Open", 1: "Open New Tab", 2: "Copy URL"},
+                Object.values(configuration?.sap?.integrationSuite?.cloudIntegration?.mouseMapping?.open ?? [0, 1, 2])
+            ), "mouseMappingOpen"
+        )
+
+        contentNode.appendChild(document.createElement("br"))
+        this.addObject(createElementFrom(`
+            <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
+                <span class="sapMLabelTextWrapper">
+                    <bdi">Artifact Type-specific Actions</bdi>
+                </span>
+                <span data-colon=":" class="sapMLabelColonAndRequired"></span>
+            </span>
+        `))
+        this.addObject(
+            new MouseButtonSelector(
+                "typeAction",
+                {0: "Action 1", 1: "Action 2", 2: "Action 3"},
+                Object.values(configuration?.sap?.integrationSuite?.cloudIntegration?.mouseMapping?.typeAction ?? configuration?.sap?.integrationSuite?.cloudIntegration?.mouseMapping?.monitoring ?? [0, 1, 2])
+            ), "mouseMappingTypeAction"
+        )
+
+        contentNode.appendChild(document.createElement("br"))
+        this.addObject(createElementFrom(`
+            <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
+                <span class="sapMLabelTextWrapper">
+                    <bdi">Stage Switch</bdi>
+                </span>
+                <span data-colon=":" class="sapMLabelColonAndRequired"></span>
+            </span>
+        `))
+        this.addObject(
+            new MouseButtonSelector(
+                "stageSwitch",
+                {0: "Open", 1: "Open New Tab", 2: "Copy URL"},
+                Object.values(configuration?.sap?.integrationSuite?.cloudIntegration?.mouseMapping?.stageSwitch ?? [0, 1, 2])
+            ), "mouseMappingStageSwitch"
+        )
+
+        contentNode.appendChild(document.createElement("br"))
+        this.addObject(createElementFrom(`
+            <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
+                <span class="sapMLabelTextWrapper">
+                    <bdi">Unlock</bdi>
+                </span>
+                <span data-colon=":" class="sapMLabelColonAndRequired"></span>
+            </span>
+        `))
+        this.addObject(
+            new MouseButtonSelector(
+                "unlock",
+                {0: "Unlock", 1: "Default", 2: "Default"},
+                Object.values(configuration?.sap?.integrationSuite?.cloudIntegration?.mouseMapping?.unlock ?? [0, 1, 2])
+            ), "mouseMappingUnlock"
+        )
+
+
+        contentNode.appendChild(document.createElement("br"))
+        contentNode.appendChild(document.createElement("br"))
+        contentNode.appendChild(createElementFrom(`
+            <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
+                <span class="sapMLabelTextWrapper">
+                    <bdi style="font-weight: bold">Artifact Display Settings</bdi>
+                </span>
+                <span data-colon=":" class="sapMLabelColonAndRequired"></span>
+            </span>
+        `))
+
+        artifactTypeConfiguration.filter(it => it.type != "Package" && it.type != "APIProxy").forEach(it => {
+            this.addObject(new ColorPicker(it.type, it.displayNameP, it.displayColor), `displayColor_${it.type}`)
+        })
+    }
+
+    addObject(object, asSetting, asHeader) {
+        if (asHeader) this.domInstanceContentContainer.appendChild(document.createElement("br"))
+        if (asSetting?.length > 0) {
+            this.configObjects.set(asSetting, object)
+            this.domInstanceContentContainer.appendChild(object.domInstance)
+        } else {
+            this.domInstanceContentContainer.appendChild(object)
+        }
+    }
+
+    getSaveOutput() {
+        let saveConfig = {
+            sap: {
+                cloudStatus: {
+                    "hideFunctional": Boolean(configuration?.sap?.cloudStatus?.hideFunctional)
+                },
+                integrationSuite: {
+                    cloudIntegration: {
+                        integrationContentQuickAccess: {
+                            enabled: this.configObjects?.get("artifactShortcutsEnabled")?.getValue() ?? true,
+                            artifactColors: {},
+                            radialMenu: {
+                                mode: this.configObjects?.get("radialMode")?.getValue() ?? "CENTER"
+                            },
+                            settings: {
+                                removePrefix: false
+                            }
+                        },
+                        mouseMapping: {},
+                        quickAccess: {
+                            enabled:  this.configObjects?.get("shortcutsEnabled")?.getValue() ?? true,
+                            links: {
+                                "certificates": this.configObjects?.get("shortcutCertificates").getValue(),
+                                "credentials": this.configObjects?.get("shortcutCredentials").getValue(),
+                                "queues": this.configObjects?.get("shortcutQueues").getValue(),
+                                "monitoring": this.configObjects?.get("shortcutMonitoring").getValue(),
+                                "datastores": this.configObjects?.get("shortcutDatastores").getValue(),
+                                "connectivityTest": this.configObjects?.get("shortcutConnectivityTest").getValue(),
+                                "checkNamingConventions": this.configObjects?.get("shortcutCheckNamingConventions").getValue(),
+                                "locks": this.configObjects?.get("shortcutLocks").getValue(),
+                                "stageSwitch": this.configObjects?.get("shortcutStageSwitch").getValue()
+                            }
+                        },
+                        unlock: {
+                            enabled:  this.configObjects?.get("unlockEnabled")?.getValue() ?? false
+                        },
+                        documentation: {
+                            enabled: this.configObjects?.get("inlineDocumentationEnabled")?.getValue() ?? false,
+                            enableEditingDocumentation: this.configObjects?.get("inlineDocumentationEditable")?.getValue() ?? false,
+                            aiSummary: this.configObjects?.get("inlineDocumentationAISummary")?.getValue() ?? false
+                        }
+                    },
+                    decorations: {
+                        enabled:  this.configObjects?.get("decorationsEnabled")?.getValue() ?? true,
+                        tenantStage:  this.configObjects?.get("decorationsStage")?.getValue() ?? true,
+                        companyLogo:  this.configObjects?.get("decorationsLogo")?.getValue() ?? true
+                    },
+                    environments: [],
+                    performanceMeasurement: {
+                        enabled: configuration.sap.integrationSuite?.performanceMeasurement?.enabled ?? true,
+                        logLevel: configuration.sap.integrationSuite?.performanceMeasurement?.logLevel ?? 19,
+                        measureIntervalInSec: configuration.sap.integrationSuite?.performanceMeasurement?.measureIntervalInSec ?? 60
+                    },
+                    reminders: {
+                        lockedArtifacts: configuration.sap.integrationSuite?.reminders?.lockedArtifacts ?? false
+                    }
+                }
+            },
+            version: configVersion,
+            isConfigured: true
+        }
+
+        Array.from(this.configObjects.entries())
+            .filter(it => { return it[0].startsWith("mouseMapping") })
+            .forEach(it => {
+                let values = Object.entries(it[1].getValues())[0]
+                saveConfig.sap.integrationSuite.cloudIntegration.mouseMapping[uncapitalize(values[0].replace("mouseMapping", ""))] = values[1]
+            })
+
+        Array.from(this.configObjects.entries())
+            .filter(it => { return it[0].startsWith("displayColor_") })
+            .forEach(it => {
+                let values = Object.entries(it[1].getValue())[0]
+                saveConfig.sap.integrationSuite.cloudIntegration.integrationContentQuickAccess.artifactColors[values[0].replace("displayColor_", "")] = values[1]
+            })
+
+
+        return saveConfig
+        //return this.radialModeSelection.getValue()
+    }
+}
+
+function uncapitalize(string) {
+    return string.charAt(0).toLowerCase() + string.slice(1)
+}
+
+class SettingsInputBase {
+    domInstance
+    domInstanceReference
+    value
+}
+
+function tryCoerceColor(color) {
+    if (!color || !color.startsWith("#") || color.length < 4) return "#000000"
+    let colorValue = color.substring(1)
+    switch (colorValue.length) {
+        case 3:
+            return "#" + colorValue.split('').map(it => { return it+it } ).join('')
+        case 4:
+            return "#" + colorValue.split('').map(it => { return it+it } ).join('').substring(0, 6)
+        case 6:
+            return color
+        case 8:
+            return "#" + colorValue.substring(0, 6)
+    }
+}
+
+class ColorPicker extends SettingsInputBase {
+    identifier
+    constructor(identifier, displayNameP, value) {
+        super()
+        this.value = tryCoerceColor(value)
+        this.identifier = identifier
+        this.domInstance = createElementFrom(`
+            <div class="sapMInputBase sapMInputBaseHeightMargin sapMInput sapMInputWithDescription"
+                 style="width: 100%;display: flex;align-items: baseline;justify-content: flex-start;">
+                <div class="sapMInputDescriptionWrapper" style="width: 150px">
+                    <span class="sapMInputDescriptionText">${displayNameP}</span>
+                </div>
+                <div class="sapMInputBaseContentWrapper">
+                    <input type="color" value="${this.value ?? null}" name="displayColor_${identifier}" style="width:100%;">
+                </div>
+            </div>
+        `)
+    }
+
+    getValue() {
+        return {[`${this.identifier}`]: this.domInstance.getElementsByTagName("input")[0].value}
+    }
+}
+
+class RadialModeSelector extends SettingsInputBase {
+    constructor() {
+        super()
+        this.value = getRadialMode()
+        this.domInstance = createElementFrom(`
+            <div class="sapMInputBase sapMInputBaseHeightMargin sapMInput sapMInputWithDescription noSelect"
+                 style="width: 100%;display: flex;align-items: baseline;justify-content: flex-start;">
+                <div class="sapMFlexBox sapMHBox sapMFlexBoxJustifyCenter sapMFlexBoxAlignItemsCenter sapMFlexBoxWrapNoWrap sapMFlexBoxAlignContentStretch sapMFlexBoxBGTransparent">
+                    <div class="sapMFlexItemAlignAuto sapMFlexBoxBGTransparent sapMFlexItem"
+                         style="order: 0; flex: 0 1 auto; min-height: auto; min-width: auto;">
+                        <ul class="sapMSegBIcons sapMSegB"
+                            style="width: 450px;" tabindex="-1">
+                            <li tabindex="-1" class="sapMSegBBtn  sapMSegBBtnMixed" style="width: 25%;" data-value="CENTER">
+                                <div class="sapMSegBBtnInnerWrapper twineClickable">
+                                    <div class="sapMSegBBtnInner twineClickable">
+                                        Default
+                                    </div>
+                                </div>
+                            </li>
+                            <li tabindex="-1" class="sapMSegBBtn  sapMSegBBtnMixed" style="width: 25%;" data-value="CENTERFREE">
+                                <div class="sapMSegBBtnInnerWrapper twineClickable">
+                                    <div class="sapMSegBBtnInner twineClickable">
+                                        No-Center
+                                    </div>
+                                </div>
+                            </li>
+                            <li tabindex="-1" class="sapMSegBBtn  sapMSegBBtnMixed" style="width: 25%;" data-value="CONTEXTONLY">
+                                <div class="sapMSegBBtnInnerWrapper twineClickable">
+                                    <div class="sapMSegBBtnInner twineClickable">
+                                        Contextmenu
+                                    </div>
+                                </div>
+                            </li>
+                            <li tabindex="0"
+                                class="sapMSegBBtn sapMSegBtnLastVisibleButton  sapMSegBBtnMixed" style="width: 25%;" data-value="DOUBLEACTION">
+                                <div class="sapMSegBBtnInnerWrapper twineClickable">
+                                    <div class="sapMSegBBtnInner twineClickable">
+                                        Dbl.Click
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        `)
+        Array.from(this.domInstance.querySelectorAll("div > div > ul > li")).find(it => {
+            return it.dataset.value == this.value
+        })?.classList.add("sapMSegBBtnSel")
+        this.domInstance.addEventListener("click", e => {
+            if (e.target.classList.contains("twineClickable")) {
+                let selection = e.target.closest("li")
+                Array.from(selection.parentNode.children).forEach(it => {
+                    it.classList.remove("sapMSegBBtnSel")
+                })
+                selection.classList.add("sapMSegBBtnSel")
+                this.value = selection.dataset.value
+            }
+        })
+    }
+
+    getValue() {
+        return this.value
+    }
+}
+class MouseButtonSelector extends SettingsInputBase {
+    mouseMappings
+    constructor(mappingId, mouseMappings, initialValues) {
+        super()
+        this.value = mappingId
+        this.mouseMappings = mouseMappings
+        this.domInstance = createElementFrom(`
+            <div class="sapMInputBase sapMInputBaseHeightMargin sapMInput sapMInputWithDescription noSelect"
+                 style="width: 100%;display: flex;align-items: baseline;justify-content: flex-start;">
+                <div class="sapMFlexBox sapMHBox sapMFlexBoxJustifyCenter sapMFlexBoxAlignItemsCenter sapMFlexBoxWrapNoWrap sapMFlexBoxAlignContentStretch sapMFlexBoxBGTransparent">
+                    <div class="sapMFlexItemAlignAuto sapMFlexBoxBGTransparent sapMFlexItem"
+                         style="order: 0; flex: 0 1 auto; min-height: auto; min-width: auto;">
+                        <ul class="sapMSegBIcons sapMSegB"
+                            style="width: 450px;" tabindex="-1">
+                            <li tabindex="0"
+                                class="sapMSegBBtn sapMSegBtnLastVisibleButton  sapMSegBBtnMixed" style="width: 33.33333%;">
+                                <div class="sapMSegBBtnInnerWrapper twineClickable">
+                                    <div class="sapMSegBBtnInner twineClickable twineTextValue" data-value="${initialValues[0]}">
+                                        ${this.mouseMappings[initialValues[0]]}
+                                    </div>
+                                </div>
+                            </li>
+                            <li tabindex="0"
+                                class="sapMSegBBtn sapMSegBtnLastVisibleButton  sapMSegBBtnMixed" style="width: 33.33333%;">
+                                <div class="sapMSegBBtnInnerWrapper twineClickable">
+                                    <div class="sapMSegBBtnInner twineClickable twineTextValue" data-value="${initialValues[1]}">
+                                        ${this.mouseMappings[initialValues[1]]}
+                                    </div>
+                                </div>
+                            </li>
+                            <li tabindex="0"
+                                class="sapMSegBBtn sapMSegBtnLastVisibleButton  sapMSegBBtnMixed" style="width: 33.33333%;">
+                                <div class="sapMSegBBtnInnerWrapper twineClickable">
+                                    <div class="sapMSegBBtnInner twineClickable twineTextValue" data-value="${initialValues[2]}">
+                                        ${this.mouseMappings[initialValues[2]]}
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        `)
+        this.domInstance.addEventListener("contextmenu", e => preventDefaultAction(e))
+        this.domInstance.addEventListener("mousedown", e => {
+            preventDefaultAction(e)
+            if (e.target.classList.contains("twineClickable")) {
+                if (e.target.classList.contains("twineTextValue")) {
+                    e.target.innerText = this.mouseMappings[e.button]
+                    e.target.dataset.value = e.button
+                } else {
+                    e.target.firstElementChild = this.mouseMappings[e.button]
+                    e.target.firstElementChild.dataset.value = e.button
+                }
+            }
+        })
+    }
+
+    getValues() {
+        let values = this.domInstance.getElementsByClassName("twineTextValue")
+        return {
+            [`${this.value}`]: {
+                "left": parseInt(values[0].dataset.value),
+                "other": parseInt(values[1].dataset.value),
+                "right": parseInt(values[2].dataset.value),
+            }
+        }
+    }
+}
+let mouseMappings = {0: "Open / Action", 1: "Open New Tab", 2: "Copy / Other"}
+
+class SimpleCheckBox extends SettingsInputBase {
+    constructor(title, value, asHeader, description) {
+        super();
+        this.value = value === true
+        this.domInstance = createElementFrom(`
+            <div class="sapMInputBase sapMInputBaseHeightMargin sapMInput sapMInputWithDescription noSelect"
+                 style="width: 100%;display: flex;align-items: baseline;justify-content: flex-start;">
+                <div class="sapMFlexItemAlignAuto sapMFlexBoxBGTransparent sapMFlexItem" style="order: 0; flex: 0 1 auto; min-height: auto; min-width: auto;">
+                    <div tabindex="0" class="sapMCb sapMCbHasLabel">
+                        <div class="sapMCbBg sapMCbHoverable sapMCbMark">
+                            <input type="CheckBox">
+                        </div>
+                        <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth sapMCbLabel" style="text-align: left;">
+                            <span class="sapMLabelTextWrapper">
+                                <bdi style="font-weight: ${asHeader ? "bold" : "inherit"}">${title}</bdi>
+                            </span>
+                            <span data-colon=":" class="sapMLabelColonAndRequired"></span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        `)
+        this.domInstance.addEventListener("click", () => {
+            this.domInstanceReference.checked = !this.domInstanceReference.checked
+            this.domInstanceReference.parentElement.classList.toggle("sapMCbMarkChecked")
+        })
+        this.domInstanceReference = this.domInstance.querySelector("div > div > div > input")
+        if (value === true) {
+            this.domInstanceReference.checked = true
+            this.domInstanceReference.parentElement.classList.toggle("sapMCbMarkChecked")
+        }
+    }
+
+    getValue() {
+        return this.domInstanceReference.checked
+    }
+}
+
+class SimpleComboBox extends SettingsInputBase {
+
+    constructor(initialValue) {
+        super();
+        this.value = Math.max(1, initialValue ?? 1)
+        this.domInstance = createElementFrom(`
+            <div class="sapMInputBase sapMInputBaseHeightMargin sapMInput sapMInputWithDescription"
+                 style="width: 100%;display: flex;align-items: baseline;justify-content: flex-start;">
+                <div class="sapMInputDescriptionWrapper" style="width: 150px;">
+                    <span class="sapMInputDescriptionText" style="padding-right: 0.5rem;">Enabled Features</span>
+                </div>
+                <div class="sapMInputBaseContentWrapper">
+                    <select name="errorTolerance" class="sapMInputBaseInner">
+                        <option value="1">1 - Features without external communication</option>
+                        <option value="2">2 - N/A</option>
+                        <option value="3">3 - N/A</option>
+                        <option value="4">4 - Above and unlock feature</option>
+                        <option value="5">5 - N/A</option>
+                        <option value="6">6 - N/A</option>
+                        <option value="7">7 - Above and everything else</option>
+                    </select>
+                </div>
+            </div>
+        `)
+
+        Array.from(this.domInstance.querySelector("div > select").options)[this.value-1].setAttribute("selected", "")
+    }
+
+    getValue() {
+        return this.domInstance.querySelector("div > select").value
+    }
+}
+
+class EnvironmentsTab extends SettingsDialogTab {
+    valid = false
+    domInstanceTabList
+    domInstanceTabContainer
+    domInstanceAddTabButton
+    environments
+
+    constructor(root) {
+        super(root)
+        this.environments = configuration.sap.integrationSuite.environments.map(it => new EnvironmentTab(this, it))
+        this.environments.push(
+            new EnvironmentTab(this, {
+                owner: "Other Environments",
+                tenants: [
+                    configuration?.sap?.integrationSuite?.undefinedTenantSettings,
+                    configuration?.sap?.integrationSuite?.trialTenantSettings
+                ]
+            }, false, false, false)
+        )
+        this.stripId = "environmentSettings"
+        this.active = true
+        this.valid = true
+        this.domInstanceHeader = createElementFrom(`
+            <div class="sapMTabStripItem" tabindex="-1">
+                <div class="sapMTSTexts">
+                    <div class="sapMTabStripItemAddText"></div>
+                    <div class="sapMTabStripItemLabel">
+                        Environments
+                        <!--<span class="sapMTabStripItemModifiedSymbol"></span>-->
+                    </div>
+                </div>
+            </div>
+        `)
+        this.domInstanceHeader.addEventListener("click", () => {
+            this.select()
+        })
+        if (this.active && this.valid) {
+            this.domInstanceHeader.classList.add("sapMTabStripItemSelected")
+        }
+        this.domInstanceContent = createElementFrom(`
+            <div class="sapMTabContainerContent sapMTabContainerContentList">
+                <div class="sapMTabContainerInnerContent disableScrollbars" style="padding: 0">
+                    <div class="sapMTabContainer sapUiResponsiveContentPadding sapUiResponsivePadding--header">
+                        <div class="sapMTabStripContainer sapUi-Std-PaddingM" style="border-top: 2px solid #22354844">
+                            <div class="sapMTabStrip sapContrastPlus">
+                                <div class="sapMTSLeftOverflowButtons"></div>
+                                <div class="sapMTSTabsContainer sapUiScrollDelegate disableScrollbars" tabindex="0" style="overflow: hidden; overflow-x: scroll;">
+                                    <div class="sapMTSTabs"></div>
+                                </div>
+                                <div class="sapMTSRightOverflowButtons"></div>
+                                <div class="sapMTSTouchArea">
+                                    <div tabindex="-1"
+                                         class="sapMSlt sapMSltIconOnly sapMSltAutoAdjustedWidth sapMSltWithIcon sapMSltHoverable sapMSltWithArrow sapMTSOverflowSelect"
+                                         style="max-width: 2.5rem;">
+                                        <div tabindex="0" title="Opened Tabs" class="sapUiPseudoInvisibleText sapMSltHiddenSelect"></div>
+                                        <input name="" value="" tabindex="-1" class="sapUiPseudoInvisibleText">
+                                        <span title="Opened Tabs" class="sapMSltLabel sapUiPseudoInvisibleText"></span>
+                                        <span data-sap-ui-icon-content="" title="Opened Tabs"
+                                              class="sapMSltIcon sapUiIcon sapUiIconMirrorInRTL" style="font-family: SAP-icons;"></span>
+                                    </div>
+                                    <button title="Add Environment" class="sapMBtnBase sapMBtn sapMTSAddNewTabBtn">
+                                        <span class="sapMBtnInner sapMBtnHoverable sapMFocusable sapMBtnIconFirst sapMBtnTransparent">
+                                            <span data-sap-ui-icon-content=""
+                                                  class="sapUiIcon sapUiIconMirrorInRTL sapMBtnCustomIcon sapMBtnIcon sapMBtnIconLeft"
+                                                  style="font-family: SAP-icons;"></span>
+                                        </span>
+                                        <span class="sapUiInvisibleText">Add Environment</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `)
+        this.domInstanceContent.style.display = "block"
+        this.domInstanceTabList = this.domInstanceContent.querySelector("div > div > div > div > div:nth-of-type(2) > div")
+        this.environments.forEach(it => this.domInstanceTabList.appendChild(it.domInstanceHeader))
+
+        this.domInstanceContainer = this.domInstanceContent.querySelector("div > div > div")
+        this.environments.forEach(it => this.domInstanceContainer.appendChild(it.domInstanceContent))
+        this.switchTab(getTenantOwner())
+
+        this.domInstanceAddTabButton = this.domInstanceContent.querySelector("div > div > div > div > div:nth-of-type(4) > button")
+        this.domInstanceAddTabButton.addEventListener("click", (e) => {
+            this.addTab(e)
+        })
+    }
+
+    getSaveOutput() {
+        return this.environments.map(it => {
+            return it.getDataset()
+        })
+    }
+
+
+    addTab(e) {
+        if (this.environments.every(it => {
+            return it.isValid()
+        })) {
+            let newTab = this.environments.push(new EnvironmentTab(this, null, true))
+            this.domInstanceTabList.appendChild(this.environments[newTab - 1].domInstanceHeader)
+            this.domInstanceContainer.appendChild(this.environments[newTab - 1].domInstanceContent)
+            this.environments[newTab - 1].select()
+        } else {
+            createToast({message: "Please enter a valid configuration for all other environments first"})
+        }
+    }
+
+    switchTab(stripId) {
+        if (this.environments.find(it => it.stripId == stripId)) {
+            this.environments.forEach(it => {
+                if (it.stripId == stripId) {
+                    it.domInstanceContent.style.display = "block"
+                    it.domInstanceHeader.classList.add("sapMTabStripItemSelected")
+                } else {
+                    it.domInstanceContent.style.display = "none"
+                    it.domInstanceHeader.classList.remove("sapMTabStripItemSelected")
+                }
+            })
+        } else {
+            this.environments.forEach(it => {
+                it.domInstanceContent.style.display = "none"
+                it.domInstanceHeader.classList.remove("sapMTabStripItemSelected")
+                it.active = false
+            })
+            this.environments[0].domInstanceContent.style.display = "none"
+            this.environments[0].domInstanceHeader.classList.remove("sapMTabStripItemSelected")
+            this.environments[0].active = true
+        }
+    }
+
+    removeEnvironment(environment) {
+        this.environments.splice(this.environments.indexOf(environment), 1)
+        environment.domInstanceHeader.remove()
+        environment.domInstanceContent.remove()
+    }
+}
+
+class EnvironmentTab extends SettingsDialogTab {
+    valid = false
+    domInstanceTabList
+    domInstanceAddTabButton
+    environment
+    tenants = []
+
+    commonSettingsTab
+
+    ownerIconUrlInput
+
+    constructor(root, environment, isNew = false, canClose = true, canEdit = true) {
+        super(root)
+        this.valid = isNew !== true
+        this.environment = environment
+        if (environment != null) {
+            this.tenants = this.environment.tenants.map(it => new TenantTab(this, it, isNew, canClose, canEdit))
+            this.stripId = environment.owner
+            if (getTenantOwner() == environment.owner) {
+                this.active = true
+            }
+        } else {
+            this.stripId = "New Environment"
+        }
+        this.domInstanceHeader = createElementFrom(`
+            <div class="sapMTabStripItem" tabindex="-1">
+                <div class="sapMTSTexts">
+                    <div class="sapMTabStripItemAddText"></div>
+                    <div class="sapMTabStripItemLabel">
+                        ${environment?.owner ?? this.stripId}
+                    </div>
+                </div>
+                ${canClose ? `<div class="sapMTSItemCloseBtnCnt">
                     <button tabindex="-1" title="Close" class="sapMBtnBase sapMBtn sapMTabStripSelectListItemCloseBtn">
                         <span class="sapMBtnInner sapMBtnHoverable sapMFocusable sapMBtnIconFirst sapMBtnTransparent">
-                            <span data-sap-ui-icon-content="" class="sapUiIcon sapUiIconMirrorInRTL sapMBtnCustomIcon sapMBtnIcon sapMBtnIconLeft" style="font-family: SAP-icons;"></span>
+                            <span data-sap-ui-icon-content="" class="sapUiIcon sapUiIconMirrorInRTL sapMBtnCustomIcon sapMBtnIcon sapMBtnIconLeft twineCloseMarker" style="font-family: SAP-icons;"></span>
                         </span>
                         <span class="sapUiInvisibleText">Close</span>
                     </button>
-                </div>
+                </div>` : ""}
             </div>
         `)
+        this.domInstanceHeader.addEventListener("click", (e) => {
+            if (e.target.classList.contains("twineCloseMarker")) {
+                this.close()
+            } else {
+                this.select()
+            }
+        })
         this.domInstanceContent = createElementFrom(`
             <div class="sapMTabContainerContent sapMTabContainerContentList">
-                <div class="sapMTabContainerInnerContent">
-                    <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
-                        <span class="sapMLabelTextWrapper">
-                            <bdi>First Name:</bdi>
-                        </span>
-                        <span data-colon=":" class="sapMLabelColonAndRequired"></span>
-                    </span>
-                    <div class="sapMInputBase sapMInputBaseHeightMargin sapMInput" style="width: 100%;">
-                        <div class="sapMInputBaseContentWrapper" style="width: 100%;">
-                            <input value="Jean" type="text" autocomplete="off" class="sapMInputBaseInner">
-                        </div>
-                    </div>
-                    <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
-                        <span class="sapMLabelTextWrapper">
-                            <bdi>Last Name:</bdi>
-                        </span>
-                        <span data-colon=":" class="sapMLabelColonAndRequired"></span>
-                    </span>
-                    <div class="sapMInputBase sapMInputBaseHeightMargin sapMInput" style="width: 100%;">
-                        <div class="sapMInputBaseContentWrapper" style="width: 100%;">
-                            <input value="Doe" type="text" autocomplete="off" class="sapMInputBaseInner">
-                        </div>
-                    </div>
-                    <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
-                        <span class="sapMLabelTextWrapper">
-                            <bdi>Salary:</bdi>
-                        </span>
-                        <span data-colon=":" class="sapMLabelColonAndRequired"></span>
-                    </span>
-                    <div class="sapMInputBase sapMInputBaseHeightMargin sapMInput sapMInputWithDescription" style="width: 100%;">
-                        <div class="sapMInputBaseContentWrapper" style="width: 50%;">
-                            <input value="1455.22" type="text" autocomplete="off" class="sapMInputBaseInner">
-                        </div>
-                        <div class="sapMInputDescriptionWrapper" style="width: calc(50%);">
-                            <span class="sapMInputDescriptionText">EUR</span>
+                <div class="sapMTabContainerInnerContent disableScrollbars" style="padding: 0">
+                    <div class="sapMTabContainer sapUiResponsiveContentPadding sapUiResponsivePadding--header">
+                        <div class="sapMTabStripContainer sapUi-Std-PaddingXL" style="border-top: 2px solid #22354844">
+                            <div class="sapMTabStrip sapContrastPlus">
+                                <div class="sapMTSLeftOverflowButtons"></div>
+                                <div class="sapMTSTabsContainer sapUiScrollDelegate disableScrollbars" tabindex="0" style="overflow: hidden;">
+                                    <div class="sapMTSTabs"></div>
+                                </div>
+                                <div class="sapMTSRightOverflowButtons"></div>
+                                <div class="sapMTSTouchArea">
+                                    <div tabindex="-1"
+                                         class="sapMSlt sapMSltIconOnly sapMSltAutoAdjustedWidth sapMSltWithIcon sapMSltHoverable sapMSltWithArrow sapMTSOverflowSelect"
+                                         style="max-width: 2.5rem;">
+                                        <div tabindex="0" title="Opened Tabs" class="sapUiPseudoInvisibleText sapMSltHiddenSelect"></div>
+                                        <input name="" value="" tabindex="-1" class="sapUiPseudoInvisibleText">
+                                        <span title="Opened Tabs" class="sapMSltLabel sapUiPseudoInvisibleText"></span>
+                                        <span data-sap-ui-icon-content="" title="Opened Tabs"
+                                              class="sapMSltIcon sapUiIcon sapUiIconMirrorInRTL" style="font-family: SAP-icons;"></span>
+                                    </div>
+                                    ${canEdit ? `<button title="Add Tenant" class="sapMBtnBase sapMBtn sapMTSAddNewTabBtn">
+                                        <span class="sapMBtnInner sapMBtnHoverable sapMFocusable sapMBtnIconFirst sapMBtnTransparent">
+                                            <span data-sap-ui-icon-content=""
+                                                  class="sapUiIcon sapUiIconMirrorInRTL sapMBtnCustomIcon sapMBtnIcon sapMBtnIconLeft"
+                                                  style="font-family: SAP-icons;"></span>
+                                        </span>
+                                        <span class="sapUiInvisibleText">Add Tenant</span>
+                                    </button>`: ""}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         `)
+        this.domInstanceTabList = this.domInstanceContent.querySelector("div > div > div > div > div:nth-of-type(2) > div")
+
+        this.commonSettingsTab = new EnvironmentHeaderTab(this, this.environment, false, false, canEdit)
+        this.domInstanceTabList.appendChild(this.commonSettingsTab.domInstanceHeader)
+        this.tenants.forEach(it => this.domInstanceTabList.appendChild(it.domInstanceHeader))
+
+        this.domInstanceContainer = this.domInstanceContent.querySelector("div > div > div")
+        this.domInstanceContainer.appendChild(this.commonSettingsTab.domInstanceContent)
+        this.tenants.forEach(it => this.domInstanceContainer.appendChild(it.domInstanceContent))
+
+        this.domInstanceAddTabButton = this.domInstanceContent.querySelector("div > div > div > div > div:nth-of-type(4) > button")
+        if (canEdit) {
+            this.domInstanceAddTabButton.addEventListener("click", (e) => {
+                this.addTab(e)
+            })
+        }
+        /* UNMODIFIED TAB CONTENT EXAMPLE
         this.domInstanceHeader = createElementFrom(`
             <div class="sapMTabStripItem sapMTabStripItemSelected" tabindex="-1">
                 <div class="sapMTSTexts">
                     <div class="sapMTabStripItemAddText"></div>
                     <div class="sapMTabStripItemLabel">Development</div>
                 </div>
-                <div class="sapMTSItemCloseBtnCnt">
-                    <button tabindex="-1" title="Close" class="sapMBtnBase sapMBtn sapMTabStripSelectListItemCloseBtn">
-                        <span class="sapMBtnInner sapMBtnHoverable sapMFocusable sapMBtnIconFirst sapMBtnTransparent">
-                            <span data-sap-ui-icon-content="" class="sapUiIcon sapUiIconMirrorInRTL sapMBtnCustomIcon sapMBtnIcon sapMBtnIconLeft" style="font-family: SAP-icons;"></span>
-                        </span>
-                        <span class="sapUiInvisibleText">Close</span>
-                    </button>
-                </div>
             </div>
-        `)
+        `)*/
     }
 
-    save() {
-        try {
-            //todo: Do everything needed for a successful save, then return success
-            return true
-        } catch (e) {
-
+    addTab(e) {
+        if (this.tenants.every(it => {
+            return it.isValid()
+        })) {
+            let newTab = this.tenants.push(new TenantTab(this, null, true))
+            this.domInstanceTabList.appendChild(this.tenants[newTab - 1].domInstanceHeader)
+            this.domInstanceContainer.appendChild(this.tenants[newTab - 1].domInstanceContent)
+            this.tenants[newTab - 1].select()
+        } else {
+            createToast({message: "Please enter a valid configuration for all other tenants first"})
         }
-        return false
+    }
+
+    renameContainer(newName) {
+        this.domInstanceHeader.querySelector("div > div:nth-of-type(2)").innerText = newName
+        this.stripId = newName
+    }
+
+    getDataset() {
+        let headerInfo = this.commonSettingsTab.getDataset()
+        let environment = {
+            owner: headerInfo.owner,
+            logo: headerInfo.logo,
+            tenants: []
+        }
+        this.tenants.forEach(it => {
+            environment.tenants.push(it.getDataset())
+        })
+        return environment
+    }
+
+    switchTab(stripId) {
+        if (stripId === "COMMON_ENVIRONMENT_SETTINGS") {
+            this.commonSettingsTab.domInstanceContent.style.display = "block"
+            this.commonSettingsTab.domInstanceHeader.classList.add("sapMTabStripItemSelected")
+            this.tenants.forEach(it => {
+                it.domInstanceContent.style.display = "none"
+                it.domInstanceHeader.classList.remove("sapMTabStripItemSelected")
+                it.active = false
+            })
+        } else {
+            this.commonSettingsTab.domInstanceContent.style.display = "none"
+            this.commonSettingsTab.domInstanceHeader.classList.remove("sapMTabStripItemSelected")
+            this.tenants.forEach(it => {
+                if (it.stripId == stripId) {
+                    it.domInstanceContent.style.display = "block"
+                    it.domInstanceHeader.classList.add("sapMTabStripItemSelected")
+                } else {
+                    it.domInstanceContent.style.display = "none"
+                    it.domInstanceHeader.classList.remove("sapMTabStripItemSelected")
+                }
+            })
+        }
+    }
+
+    isValid() {
+        return this.tenants.every(it => it.isValid()) &&
+            this.commonSettingsTab.getDataset().owner.length > 0 &&
+            this.commonSettingsTab.getDataset().owner != "New Environment"
+    }
+
+    removeTenant(tenant) {
+        this.tenants.splice(this.tenants.indexOf(tenant), 1)
+        tenant.domInstanceHeader.remove()
+        tenant.domInstanceContent.remove()
+    }
+
+    close() {
+        let dialog = createConfirmDialog({
+            actionTitle: "Confirm",
+            actionText: `Do you want to delete this environment and all associated tenants?`,
+            confirm: {
+                id: `__twine_delete_environment_confirm`,
+                title: "Delete",
+                type: "NEGATIVE",
+                onBar: true
+            },
+            cancel: {id: `__twine_delete_environment_cancel`, title: "Cancel", onBar: true}
+        }, (e) => {
+            this.root.removeEnvironment(this)
+            dialog.remove()
+            popoverLayerBlocker.style.zIndex = "64"
+        },(e) => {
+            dialog.remove()
+            popoverLayerBlocker.style.zIndex = "64"
+        })
+        popoverLayer.insertAdjacentElement("beforeend", dialog)
+
+        popoverLayerBlocker.style.zIndex = "69"
     }
 }
 
+class EnvironmentHeaderTab extends SettingsDialogTab {
+    valid = false
+
+
+    constructor(root, environment, isNew = false, canClose = true, canEdit = true) {
+        super(root)
+        this.valid = !isNew
+        this.stripId = "COMMON_ENVIRONMENT_SETTINGS"
+        this.domInstanceHeader = createElementFrom(`
+            <div class="sapMTabStripItem" tabindex="-1">
+                <div class="sapMTSTexts">
+                    <div class="sapMTabStripItemAddText"></div>
+                    <div class="sapMTabStripItemLabel">
+                        Common Settings
+                        <span class="sapMTabStripItemModifiedSymbol"></span>
+                    </div>
+                </div>
+            </div>
+        `)
+        this.domInstanceHeader.addEventListener("click", () => {
+            this.select();
+        })
+        this.domInstanceHeader.classList.add("sapMTabStripItemSelected")
+        this.domInstanceContent = createElementFrom(`
+            <div class="sapMTabContainerContent sapMTabContainerContentList">
+                <div class="sapMTabContainerInnerContent disableScrollbars">
+                    <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
+                        <span class="sapMLabelTextWrapper">
+                            <bdi style="font-weight: bold">General</bdi>
+                        </span>
+                        <span data-colon=":" class="sapMLabelColonAndRequired"></span>
+                    </span>
+                    <div class="sapMInputBase sapMInputBaseHeightMargin sapMInput sapMInputWithDescription"
+                         style="width: 100%;display: flex;align-items: baseline;justify-content: flex-start;">
+                        <div class="sapMInputDescriptionWrapper" style="width: 150px;">
+                            <span class="sapMInputDescriptionText" style="padding-right: 0.5rem">Owner</span>
+                        </div>
+                        <div class="sapMInputBaseContentWrapper">
+                            <input type="text" autocomplete="off" class="sapMInputBaseInner ${canEdit ? "" : "sapMInputBaseDisabled "}"
+                                   placeholder="Owner" value="${environment?.owner ?? "New Environment"}" ${canEdit ? "" : "disabled"}>
+                        </div>
+                    </div>
+                    <div class="sapMInputBase sapMInputBaseHeightMargin sapMInput sapMInputWithDescription"
+                         style="width: 100%;display: flex;align-items: baseline;justify-content: flex-start;">
+                        <div class="sapMInputDescriptionWrapper" style="width: 150px;">
+                            <span class="sapMInputDescriptionText" style="padding-right: 0.5rem">Logo</span>
+                        </div>
+                        <div class="sapMInputBaseContentWrapper" style="">
+                            <input type="text" autocomplete="off" class="sapMInputBaseInner ${canEdit ? "" : "sapMInputBaseDisabled "}" placeholder="URL or Base64 Data" value="${environment?.logo ?? ""}" ${canEdit ? "" : "disabled"}>
+                        </div>
+                    </div>
+                    <div class="sapMFlexItemAlignAuto sapMFlexBoxBGTransparent sapMFlexItem" style="order: 0; flex: 0 1 auto; min-height: auto; min-width: auto;">
+                        <img src="${environment?.logo ?? sapLogoSvgData}" ${environment?.logo ? `data-src="${environment.logo}"` : "" } alt="" class="sapMImg" style="width: 7em; height: 3em; padding: 0 8px">
+                    </div>
+                </div>
+            </div>
+        `)
+
+        this.domInstanceContent.querySelectorAll("div > div > div > input").item(0).addEventListener("input", e => {
+            this.root.renameContainer(e.target.value)
+        })
+
+        this.domInstanceContent.querySelectorAll("div > div > div > input").item(1).addEventListener("paste", e => {
+            let newValue = e.clipboardData.getData("text")
+            switch (true) {
+                case newValue.startsWith("https://"):
+                case newValue.startsWith("data:image"):
+                    break
+                case newValue.startsWith("svg+xml;base64"):
+                    newValue = "data:image/" + newValue
+                    break
+                case newValue != "" && /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/.test(newValue):
+                    newValue = "data:image/svg+xml;base64," + newValue
+                    break
+                default:
+                    newValue = sapLogoSvgData
+                    break
+            }
+            this.domInstanceContent.querySelector("div > div > img").src = newValue
+            this.domInstanceContent.querySelector("div > div > img").srcset = newValue
+            this.domInstanceContent.querySelector("div > div > img").dataset.src = newValue
+            e.target.dispatchEvent(new Event('input'))
+        })
+    }
+
+    getDataset() {
+        return {
+            logo: this.domInstanceContent.querySelectorAll("div > div > img").item(0).dataset.src,
+            owner: this.domInstanceContent.querySelectorAll("div > div > div > input").item(0).value
+        }
+    }
+}
+
+class TenantTab extends SettingsDialogTab {
+    valid = false
+    tenant
+    tagInput
+    colorInput
+    idInput
+    systemInput
+    datacenterInput
+    errorToleranceInput
+
+    constructor(root, tenant, isNew = false, canClose = true, canEdit = true) {
+        super(root)
+        this.tenant = tenant
+        if (tenant != null) {
+            this.stripId = tenant.id ?? tenant.name
+            this.valid = !isNew
+        } else {
+            this.stripId = "New Tenant"
+        }
+        this.domInstanceHeader = createElementFrom(`
+            <div class="sapMTabStripItem" tabindex="-1">
+                <div class="sapMTSTexts">
+                    <div class="sapMTabStripItemAddText"></div>
+                    <div class="sapMTabStripItemLabel">
+                        ${tenant?.name ?? this.stripId}
+                    </div>
+                </div>
+                ${canClose ? `<div class="sapMTSItemCloseBtnCnt">
+                    <button tabindex="-1" title="Close" class="sapMBtnBase sapMBtn sapMTabStripSelectListItemCloseBtn">
+                        <span class="sapMBtnInner sapMBtnHoverable sapMFocusable sapMBtnIconFirst sapMBtnTransparent">
+                            <span data-sap-ui-icon-content="" class="sapUiIcon sapUiIconMirrorInRTL sapMBtnCustomIcon sapMBtnIcon sapMBtnIconLeft twineCloseMarker" style="font-family: SAP-icons;"></span>
+                        </span>
+                        <span class="sapUiInvisibleText">Close</span>
+                    </button>
+                </div>` : ""}
+            </div>
+        `)
+        this.domInstanceHeader.addEventListener("click", (e) => {
+            if (e.target.classList.contains("twineCloseMarker")) {
+                this.close()
+            } else {
+                this.select()
+            }
+        })
+        this.domInstanceContent = createElementFrom(`
+            <div class="sapMTabContainerContent sapMTabContainerContentList">
+                <div class="sapMTabContainerInnerContent disableScrollbars">
+                    <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
+                        <span class="sapMLabelTextWrapper">
+                            <bdi style="font-weight: bold">Stage Settings:</bdi>
+                        </span>
+                        <span data-colon=":" class="sapMLabelColonAndRequired"></span>
+                    </span>
+                    <div class="sapMInputBase sapMInputBaseHeightMargin sapMInput sapMInputWithDescription"
+                         style="width: 100%;display: flex;align-items: baseline;justify-content: flex-start;">
+                        <div class="sapMInputDescriptionWrapper" style="width: 150px;">
+                            <span class="sapMInputDescriptionText" style="padding-right: 0.5rem;">Tag</span>
+                        </div>
+                        <div class="sapMInputBaseContentWrapper">
+                            <input type="text" autocomplete="off" class="sapMInputBaseInner ${canEdit ? "" : "sapMInputBaseDisabled "}"
+                                   placeholder="E.g. DEV, Production etc." value="${tenant?.name ?? "New Tenant"}" ${canEdit ? "" : "disabled"}>
+                        </div>
+                    </div>
+                    <div class="sapMInputBase sapMInputBaseHeightMargin sapMInput sapMInputWithDescription"
+                         style="width: 100%;display: flex;align-items: baseline;justify-content: flex-start;">
+                        <div class="sapMInputDescriptionWrapper" style="width: 150px">
+                            <span class="sapMInputDescriptionText">Color</span>
+                        </div>
+                        <div class="sapMInputBaseContentWrapper">
+                            <input type="color" value="${tryCoerceColor(tenant?.color)}" style="width:100%;">
+                        </div>
+                    </div>
+                    ${new SimpleComboBox(tenant?.errorTolerance ?? 0).domInstance.outerHTML}
+                    <br>
+                    
+                    <span class="sapMLabel sapUiSelectable sapMLabelMaxWidth" style="text-align: left;">
+                        <span class="sapMLabelTextWrapper">
+                            <bdi style="font-weight: bold">Tenant URL:</bdi>
+                        </span>
+                        <span data-colon=":" class="sapMLabelColonAndRequired"></span>
+                    </span>
+                    <div class="sapMInputBase sapMInputBaseHeightMargin sapMInput sapMInputWithDescription"
+                         style="width: 100%;display: flex;align-items: baseline;justify-content: flex-start;">
+                        <div class="sapMInputDescriptionWrapper" style="">
+                            <span class="sapMInputDescriptionText" style="padding-right: 0.5rem;"><b>https://</b></span>
+                        </div>
+                        <div class="sapMInputBaseContentWrapper" style="">
+                            <input type="text" autocomplete="off" class="sapMInputBaseInner ${canEdit ? "" : "sapMInputBaseDisabled "}" placeholder="Tenant (or URL)" value="${tenant?.id ?? ""}" ${canEdit ? "" : "disabled"}>
+                        </div>
+                        <div class="sapMInputDescriptionWrapper" style="">
+                            <span class="sapMInputDescriptionText" style="padding-right: 0.5rem;">
+                                <b>.integrationsuite</b>
+                            </span>
+                        </div>
+                        <div class="sapMInputBaseContentWrapper" style="">
+                            <input type="text" autocomplete="off" class="sapMInputBaseInner ${canEdit ? "" : "sapMInputBaseDisabled "}" placeholder="System (or URL)" value="${tenant?.system ?? ""}" ${canEdit ? "" : "disabled"}>
+                        </div>
+                        <div class="sapMInputDescriptionWrapper" style="">
+                            <span class="sapMInputDescriptionText" style="padding-right: 0.5rem;">
+                                <b>.cfapps.</b>
+                            </span>
+                        </div>
+                        <div class="sapMInputBaseContentWrapper" style="">
+                            <input type="text" autocomplete="off" class="sapMInputBaseInner ${canEdit ? "" : "sapMInputBaseDisabled "}" placeholder="Datacenter (or URL)" value="${tenant?.datacenter ?? ""}" ${canEdit ? "" : "disabled"}>
+                        </div>
+                        <div class="sapMInputDescriptionWrapper" style="">
+                            <span class="sapMInputDescriptionText"><b>.hana.ondemand.com</b></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `)
+        this.domInstanceContent.style.display = "none"
+        let inputs = this.domInstanceContent.querySelectorAll("input, select")
+
+        this.idInput = inputs[3]
+        this.colorInput = inputs[1]
+        this.errorToleranceInput = inputs[2]
+        this.tagInput = inputs[0]
+        this.systemInput = inputs[4]
+        this.datacenterInput = inputs[5]
+
+        this.tagInput.addEventListener("input", e => {
+            this.domInstanceHeader.querySelector("div > div:nth-of-type(2)").innerText = e.target.value
+            this.stripId = e.target.value
+        })
+
+        this.idInput.addEventListener("input", e => { this.updateIDs(e) })
+        this.systemInput.addEventListener("input", e => { this.updateIDs(e) })
+        this.datacenterInput.addEventListener("input", e => { this.updateIDs(e) })
+    }
+
+    updateIDs(e) {
+        if (e.target.value.startsWith("https://")) {
+            try {
+                let id = e.target.value.split(".integrationsuite")[0].split("://")[1]
+                let system = e.target.value.split(".integrationsuite")[1].split(".cfapps")[0]
+                let datacenter = e.target.value.split(".hana.ondemand")[0].split("cfapps.")[1]
+                if (id == null || datacenter == null || system == null || id.startsWith("https://") || datacenter.startsWith("https://") || system.startsWith("https://") || /\.\//.test(id) || /\.\//.test(datacenter) || /\.\//.test(system)) {
+                    createToast({message: "You need to paste a URL like the one you are at right now"})
+                    throw new Error()
+                }
+                this.stripId = id
+                this.idInput.value = id
+                this.systemInput.value = system
+                this.datacenterInput.value = datacenter
+            } catch(exception) {
+                e.target.value = ""
+            }
+        }
+    }
+
+    getDataset() {
+        return {
+            id: this.idInput.value,
+            system: this.systemInput.value ?? "",
+            datacenter: this.datacenterInput.value,
+            errorTolerance: parseInt(this.errorToleranceInput.value),
+            name: this.tagInput.value,
+            color: this.colorInput.value
+        }
+    }
+
+    isValid() {
+        return this.idInput.value.length > 0 &&
+            (this.datacenterInput.value.length == 4 || this.datacenterInput.value.length == 8) &&
+            this.tagInput.value.length > 0 &&
+            this.tagInput.value != "New Tenant"
+    }
+
+    close() {
+        let dialog = createConfirmDialog({
+            actionTitle: "Confirm",
+            actionText: `Do you want to delete this tenant?`,
+            confirm: {
+                id: `__twine_delete_tenant_confirm`,
+                title: "Delete",
+                type: "NEGATIVE",
+                onBar: true
+            },
+            cancel: {id: `__twine_delete_tenant_cancel`, title: "Cancel", onBar: true}
+        }, (e) => {
+            this.root.removeTenant(this)
+            dialog.remove()
+            popoverLayerBlocker.style.zIndex = "64"
+        },(e) => {
+            dialog.remove()
+            popoverLayerBlocker.style.zIndex = "64"
+        })
+        popoverLayer.insertAdjacentElement("beforeend", dialog)
+
+        popoverLayerBlocker.style.zIndex = "69"
+    }
+}
+
+let sapLogoSvgData = String.raw`data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB2aWV3Qm94PSIwIDAgNDEyLjM4IDIwNCI+PGRlZnM+PHN0eWxlPi5jbHMtMSwuY2xzLTJ7ZmlsbC1ydWxlOmV2ZW5vZGQ7fS5jbHMtMXtmaWxsOnVybCgjbGluZWFyLWdyYWRpZW50KTt9LmNscy0ye2ZpbGw6I2ZmZjt9PC9zdHlsZT48bGluZWFyR3JhZGllbnQgaWQ9ImxpbmVhci1ncmFkaWVudCIgeDE9IjIwNi4xOSIgeDI9IjIwNi4xOSIgeTI9IjIwNCIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzAwYjhmMSIvPjxzdG9wIG9mZnNldD0iMC4wMiIgc3RvcC1jb2xvcj0iIzAxYjZmMCIvPjxzdG9wIG9mZnNldD0iMC4zMSIgc3RvcC1jb2xvcj0iIzBkOTBkOSIvPjxzdG9wIG9mZnNldD0iMC41OCIgc3RvcC1jb2xvcj0iIzE3NzVjOCIvPjxzdG9wIG9mZnNldD0iMC44MiIgc3RvcC1jb2xvcj0iIzFjNjViZiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzFlNWZiYiIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjx0aXRsZT5TQVBfZ3JhZF9SX3Njcm5fWmVpY2hlbmZsw6RjaGUgMTwvdGl0bGU+PHBvbHlsaW5lIGNsYXNzPSJjbHMtMSIgcG9pbnRzPSIwIDIwNCAyMDguNDEgMjA0IDQxMi4zOCAwIDAgMCAwIDIwNCIvPjxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTI0NC43MywzOC4zNmwtNDAuNiwwdjk2LjUyTDE2OC42NywzOC4zM0gxMzMuNTFsLTMwLjI3LDgwLjcyQzEwMCw5OC43LDc5LDkxLjY3LDYyLjQsODYuNCw1MS40Niw4Mi44OSwzOS44NSw3Ny43Miw0MCw3MmMuMDktNC42OCw2LjIzLTksMTguMzgtOC4zOCw4LjE3LjQzLDE1LjM3LDEuMDksMjkuNzEsOGwxNC4xLTI0LjU1Qzg5LjA2LDQwLjQyLDcxLDM2LjIxLDU2LjE3LDM2LjE5aC0uMDljLTE3LjI4LDAtMzEuNjgsNS42LTQwLjYsMTQuODNBMzQuMjMsMzQuMjMsMCwwLDAsNS43Nyw3NC43QzUuNTQsODcuMTUsMTAuMTEsOTYsMTkuNzEsMTAzYzguMSw1Ljk0LDE4LjQ2LDkuNzksMjcuNiwxMi42MiwxMS4yNywzLjQ5LDIwLjQ3LDYuNTMsMjAuMzYsMTNBOS41Nyw5LjU3LDAsMCwxLDY1LDEzNWMtMi44MSwyLjktNy4xMyw0LTEzLjA5LDQuMS0xMS40OS4yNC0yMC0xLjU2LTMzLjYxLTkuNTlMNS43NywxNTQuNDJhOTMuNzcsOTMuNzcsMCwwLDAsNDYsMTIuMjJsMi4xMSwwYzE0LjI0LS4yNSwyNS43NC00LjMxLDM0LjkyLTExLjcxLjUzLS40MSwxLS44NCwxLjQ5LTEuMjhMODYuMTcsMTY0LjVIMTIzbDYuMTktMTguODJhNjcuNDYsNjcuNDYsMCwwLDAsMjEuNjgsMy40Myw2OC4zMyw2OC4zMywwLDAsMCwyMS4xNi0zLjI1bDYsMTguNjRoNjAuMTR2LTM5aDEzLjExYzMxLjcxLDAsNTAuNDYtMTYuMTUsNTAuNDYtNDMuMkMzMDEuNzQsNTIuMTksMjgzLjUyLDM4LjM2LDI0NC43MywzOC4zNlpNMTUwLjkxLDEyMWEzNi45MywzNi45MywwLDAsMS0xMy0yLjI4bDEyLjg3LTQwLjU5SDE1MWwxMi42NSw0MC43MUEzOC41LDM4LjUsMCwwLDEsMTUwLjkxLDEyMVptOTYuMi0yMy4zM2gtOC45NFY2NC45MWg4Ljk0YzExLjkzLDAsMjEuNDQsNCwyMS40NCwxNi4xNCwwLDEyLjYtOS41MSwxNi41Ny0yMS40NCwxNi41NyIvPjwvc3ZnPg==`
+function compareVersion(version, oldVersion) {
+    if (version == oldVersion) return 0
+    if (version == null) return -1
+    else if (oldVersion == null) return 1
+
+    let parts = version.split(".").map(it => parseInt(it))
+    let oldParts = oldVersion.split(".").map(it => parseInt(it))
+
+    let year = parts[0] > oldParts[0] ? 1 : parts[0] === oldParts[0] ? 0 : -1
+    let month = parts[1] > oldParts[1] ? 1 : parts[1] === oldParts[1] ? 0 : -1
+    let day = parts[2] > oldParts[2] ? 1 : parts[2] === oldParts[2] ? 0 : -1
+    let id = parts[3] ?? 0 > oldParts[3] ?? 0 ? 1 : parts[3] ?? 0 === oldParts[3] ?? 0 ? 0 : -1
+
+    return year > 0 ? 1 : year < 0 ? -1 : month > 0 ? 1 : month < 0 ? -1 : day > 0 ? 1 : day < 0 ? -1 : id > 0 ? 1 : id < 0 ? -1 : 0
+}
+
+const getDifference = (a, b) => Object.entries(a).reduce((ac, [k, v]) => b[k] && b[k] !== v ? (ac[k] = b[k], ac) : ac, {});
+
+function openLinkInNewTab(url) {
+    chrome.runtime.sendMessage({
+        type: "OPEN_IN_TAB",
+        url: url
+    }).then(response => {
+
+    }).catch(error => {
+
+    })
+}
 
 /*
 Regex for UI5 Component Cleaning => aria-.*?=".+?"\s?|id=".*?"\s?|role=".*?"\s?|data-sap-(?!ui-icon-content).*?=".*?"\s?|data-ui-accesskey=".*?"\s?
