@@ -8,6 +8,7 @@
     {
       "js": [
         "lib/fuse.js",
+        "content/sap/is/api/operations.js",
         "content/common.js",
         "content/sap/ui5/faker.js",
         "content/sap/is/fetch.js",

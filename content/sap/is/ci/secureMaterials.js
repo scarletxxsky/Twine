@@ -3,7 +3,7 @@ async function fetchSecureMaterials() {
     let secureMaterials
 
     if (response.status == "request") {
-        secureMaterials = await callXHR("GET", operationsUrl() + "/com.sap.it.km.api.commands.SecurityMaterialsListCommand", null, null, true, {headers: {"Cache-Control": "no-cache, no-store, max-age=0"}}).then(result => {
+        secureMaterials = await callXHR("GET", secureMaterialsUrl(), null, null, true, {headers: {"Cache-Control": "no-cache, no-store, max-age=0"}}).then(result => {
             let secureMaterialXml = new DOMParser().parseFromString(result, "application/xml")
 
             return (Array.from(secureMaterialXml.querySelectorAll("artifactInformations")).length > 0 ? Object.entries(
@@ -21,7 +21,6 @@ async function fetchSecureMaterials() {
                 .sort((a, b) => {
                     return (getTypeConversion("type", "priority", a[0]) < getTypeConversion("type", "priority", b[0])) ? -1 : (getTypeConversion("type", "priority", a[0]) < getTypeConversion("type", "priority", b[0])) ? 1 : 0
                 }).map(typeList => {
-                    console.log(typeList[0])
                     return {
                         title: getTypeConversion("type", "displayNameP", typeList[0]),
                         meta: {

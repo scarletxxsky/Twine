@@ -10,6 +10,7 @@ let loggedInUser = null
 let locks = [], lockRequestStarted = false
 let initialized = false
 let configVersion = "2024.10.22"
+let popup
 
 let tenantVariables = {
     configuration: null,
@@ -57,7 +58,7 @@ async function init(storedConfiguration) {
             symbol: "",
             displayColor: "#22e",
             priority: 0
-        }, {
+        },{
             type: "default",
             classType: SecureMaterialArtifact,
             urlType: "",
@@ -67,29 +68,18 @@ async function init(storedConfiguration) {
             displayNameP: "User Credentials",
             symbol: "",
             displayColor: "#22e",
-            priority: 0
-        },  {
+            priority: 1
+        },   {
             type: "oauth2:default",
             classType: SecureMaterialArtifact,
             urlType: "",
             lockType: "SecureMaterial",
             operationsType: "SecureMaterial",
-            displayNameS: "OAuth Credential",
-            displayNameP: "OAuth Credentials",
+            displayNameS: "OAuth2 Credential",
+            displayNameP: "OAuth2 Credentials",
             symbol: "",
             displayColor: "#22e",
-            priority: 1
-        },   {
-            type: "undefined",
-            classType: SecureMaterialArtifact,
-            urlType: "",
-            lockType: "SecureMaterial",
-            operationsType: "SecureMaterial",
-            displayNameS: "Other Credential",
-            displayNameP: "Other Credentials",
-            symbol: "",
-            displayColor: "#22e",
-            priority: 4
+            priority: 2
         },   {
             type: "secure_param",
             classType: SecureMaterialArtifact,
@@ -100,29 +90,18 @@ async function init(storedConfiguration) {
             displayNameP: "Secure Parameters",
             symbol: "",
             displayColor: "#22e",
-            priority: 2
+            priority: 3
         },   {
-            type: "openconnectors",
-            classType: SecureMaterialArtifact,
-            urlType: "",
-            lockType: "SecureMaterial",
-            operationsType: "SecureMaterial",
-            displayNameS: "Open Connector Credential",
-            displayNameP: "Open Connector Credentials",
-            symbol: "",
-            displayColor: "#22e",
-            priority: 5
-        },    {
             type: "authorization_code",
             classType: SecureMaterialArtifact,
             urlType: "",
             lockType: "SecureMaterial",
             operationsType: "SecureMaterial",
-            displayNameS: "OAuth Authorization Code",
-            displayNameP: "OAuth Authorization Codes",
+            displayNameS: "Authorization Code",
+            displayNameP: "Authorization Codes",
             symbol: "",
             displayColor: "#22e",
-            priority: 3
+            priority: 4
         }, {
             type: "Package",
             classType: Branch,
@@ -313,6 +292,9 @@ async function init(storedConfiguration) {
                 }
             } else brokenKeys.push(key)
         })
+
+        if (brokenKeys.length > 0)
+            createToast({message: `The following display colors for artifact types are unknown or invalid: <p>${brokenKeys.map(it => "<b>" + it + "</b>").join("<br>")}</p>Feel free to be annoyed by this message, until you fix your configuration`})
     }
 
     measureInterval = Math.min(Math.max(configuration?.sap?.integrationSuite?.performanceMeasurement?.measureIntervalInSec ?? 15, 15), 1800)
@@ -386,6 +368,20 @@ async function init(storedConfiguration) {
                 if (checkCloudIntegrationFeature("integrationContentQuickAccess")) initializeIntegrationContentQuicklinks()
                 if (checkIntegrationSuiteFeature("decorations")) initializeDecorations()
                 if (checkCloudIntegrationFeature("documentation")) initializeDocumentation()
+
+                popup = window.open('', `${getTenantOwner()}_${getTenantId()}`, 'width=400,height=400,menubar=no,location=no,resizable=no,scrollbars=no,status=no')
+                popup.document.write('<!DOCTYPE html><html><head><title>Popup</title></head><body></body></html>')
+                popup.document.close()
+
+                setTimeout(() => {
+                    if (popup.location.href === `${getTenantOwner()}_${getTenantId()}`) {
+                        let div = popup.document.createElement("div")
+                        div.innerText = "testbody"
+                        popup.document.body.appendChild(div)
+                    }
+                }, 1500)
+
+                popup.focus()
                 break
             case "ARTIFACT_ONLOAD":
                 updateArtifactInfo()
@@ -443,12 +439,7 @@ function apiPortalUrl() {
 function deepWorkspaceUrl() {
     return `https://${window.location.host}/api/1.0`
 }
-function publicTenantUrl() {
-    return `https://${/*TODO: ADD*/address}/api/v1`
-}
-function operationsUrl() {
-    return `https://${window.location.host}/Operations`
-}
+
 
 function checkErrorTolerance(level) {
     return (tenantVariables?.currentTenant?.errorTolerance ?? -1) >= (level ?? 100)
