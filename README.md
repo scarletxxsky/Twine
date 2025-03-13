@@ -41,11 +41,11 @@ It may work on firefox and should work on any other Chromium based browser.
 You need Google Chrome to install this plugin.
 
 Add the extension via the Chrome Web Store
-- [Chrome Web Store](https://chromewebstore.google.com/detail/twine/aachbobnhpbjdieoljpkmllonipnalne)
+- [Twine ("Stable" Release)](https://chromewebstore.google.com/detail/twine/aachbobnhpbjdieoljpkmllonipnalne)
 
 If you would like to have "early access" to even more unstable features than the released ones.
 Be aware that this version may include features that are pretty much untested and a potential danger to your Integration Suite's stability and that your configuration may frequently break.
-- [Chrome Web Store](https://chromewebstore.google.com/detail/twine-fast-track-build/mgblhibgmplacfjmhggjopmnekdeabkn)
+- [Twine (Fast Track Build)](https://chromewebstore.google.com/detail/twine-fast-track-build/mgblhibgmplacfjmhggjopmnekdeabkn)
 
 ## Configuration
 - To edit your configuration, open any integration suite and click on the "Twine Settings" button at the bottom left of the side navigation
