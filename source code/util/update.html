@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twine Update</title>
+    <style>
+        * {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        ul {
+            padding-bottom: 1rem;
+        }
+
+        li {
+            padding-bottom: 0.3rem;
+        }
+    </style>
+</head>
+<body>
+<div style="margin: auto; left: 0; right: 0; max-width: 90%; justify-content: center">
+    <div>
+        <ul style="display: flex; list-style: none; padding: 0; cursor: pointer; justify-content: center; font-size: 20px;">
+            <li id="updates-tab" style="margin-right: 2rem; border-bottom: 2px solid #000;">Updates</li>
+            <li id="planned-features-tab">Planned Features</li>
+        </ul>
+    </div>
+    <div id="updates-content">
+
+        <h1 style="text-align: center">2024.03.12.0 (Main)</h1>
+        <div style="width: 100%; text-align: center; font-size: 22px; margin-top: -15px"><span style="">First real update in 4 months 🥳</span>
+        </div>
+        <div style="width: 100%; text-align: center; font-size: 22px">Constructive criticism, bug reports, suggestions and questions are always welcome!</div>
+        <hr>
+        <span>If there are any problems, please feel free to ask for help</span>
+        <h2 style="text-align: center">Changed</h2>
+        <h3>Artifact list</h3>
+        <ul style="text-align: left; font-size: 20px">
+            <li>Added an action to download artifacts via radial menu.<br>Seems to download the artifact with option
+                (<i>Merged Configured and Default Values</i>)
+            </li>
+            <li>Added a Trace action to IFlows.<br>Only on single environment, Cloud Integration tenants for now,
+                because I don't have access to an Edge Integration Cell to test the differences.
+            </li>
+            <li>Added a Compare action group to Value Mappings, Message Mappings and IFlows.<br>Extremely rudimentary at
+                the moment because it's basically a text comparison.
+                <ul>
+                    <li>You can compare <i>Runtime vs. Designtime</i>, <i>Runtime vs. Runtime on another stage</i> and
+                        <i>Designtime vs. Designtime on another stage</i>.
+                    </li>
+                    <li>Value Mappings are at least decently structured.</li>
+                    <li>For IFlows and Message Mappings it's really just a textual comparison of the IFlow/Mapping.<br>IFlows are
+                        also missing a comparison for scripts/mappings.
+                    </li>
+                    <li>Shows how many differences there are, if any.</li>
+                </ul>
+            </li>
+            <li>Mouse mappings are fixed now, unlike the last two times I thought they were.<br>Unfortunately this means
+                that you will most likely have to change them to the buttons you configured previously.
+            </li>
+            <li>The previous <i>Copy Link</i> action was replaced by <i>Details</i>, now displays meta info about the
+                artifact.<br>The specific information depends on the artifact type, but generally you will see stuff
+                like:
+                <ul>
+                    <li>Names</li>
+                    <li>IDs</li>
+                    <li>Deployment status</li>
+                    <li>Deployment version</li>
+                    <li>Link to the artifact (You can still copy the link that way)</li>
+                    <li>Endpoints</li>
+                    <li>Log level</li>
+                    <li>Direct dependencies</li>
+                    <li>Used adapters</li>
+                </ul>
+                You can click to copy any piece of information that has a 📄 symbol next to it.
+            </li>
+        </ul>
+        <h3>API Proxy list</h3>
+        <ul style="text-align: left; font-size: 20px">
+            <li>I don't remember what was available before, but these are the action groups that are available now:
+                <ul>
+                    <li>Copy Name<b style="color: #900"> / </b>Copy ID</li>
+                    <li>Open<b style="color: #900"> / </b>Open in New Tab<b style="color: #900"> / </b>Show Details</li>
+                    <li>Stage Switch (Might not work, depending on the naming between stages)</li>
+                </ul>
+            </li>
+            <li>Maybe API Providers, Products and Applications will be added in the future.</li>
+        </ul>
+        <h3>Appearance</h3>
+        <ul style="text-align: left; font-size: 20px">
+            <li>All artifact lists have been visually updated to be more user-friendly (indentation etc.) and blend
+                better into the Integration Suite UI.
+            </li>
+            <li>Side navigation and header bar can now be coloured the same color as the Tenant Tag.<br>The tag will
+                automatically be set to the default color, when the header is coloured.
+            </li>
+        </ul>
+        <h3>Miscellaneous</h3>
+        <ul style="text-align: left; font-size: 20px">
+            <li>Some settings will now immediately take effect after saving.
+                <ul>
+                    <li>Artifact lists will be updated (Mainly affects colors and reloading the shortcut list).</li>
+                    <li>Side navigation and header bar background color will be updated, but not reset to default
+                        without reloading.
+                    </li>
+                    <li>Fixed list at the bottom will also be updated immediately.</li>
+                </ul>
+            </li>
+            <li>Most features should now be disabled, if the configured tenant-based permissions prohibit them</li>
+            <li>Artifacts lists load independently of each other</li>
+            <li>Artifact lists are periodically refreshed. Toggling a list root element will refresh the list, but it's
+                not really reliable yet.
+            </li>
+            <li>You should only have to dismiss the "Camel Version Update" notification once more per tenant (when/if
+                it's running on Camel 3.14)<br>Sorry for the annoying repetitive notifications over the past weeks.
+            </li>
+            <li>You can also turn on/off notifications about Integration Suite version updates, if you'd like (Settings
+                -> General -> Reminders -> Version Updates)<br>Disabling this will also disable Camel Update
+                notifications.
+            </li>
+        </ul>
+        <hr>
+        <h2 style="text-align: center">Added</h2>
+        <h3>Secure Material list</h3>
+        <ul style="text-align: left; font-size: 20px">
+            <li>Has only 2 action groups for now
+                <ul>
+                    <li>Copy Name<b style="color: #900"> / </b>Copy User<b style="color: #900"> / </b>Show Details</li>
+                    <li>Delete (Careful! You have to confirm it, but it <b>will</b> delete the credential).</li>
+                </ul>
+            </li>
+        </ul>
+        <h3>Custom Shortcuts</h3>
+        <ul style="text-align: left; font-size: 20px">
+            <li>This will contain all your custom shortcuts, which you can edit in the overrides tab of the
+                settings.<br><i>I know it's manually editing JSON again, but adding this to the UI settings is going to
+                    take some time, probably.<br>There are also some things that just aren't supposed to be edited, but
+                    I still wanted to leave open a backdoor to do so.</i></li>
+            <li>A guide on how to create and customize shortcuts can be found by clicking on the table button next to
+                the save button in the settings.<br>Some useful demo shortcuts should automatically be created if
+                you:<br>
+                <ul>
+                    <li>newly install the extension</li>
+                    <li>automatically update from the old "official" version</li>
+                    <li>reset your settings</li>
+                </ul>
+            </li>
+        </ul>
+        <hr>
+        <h2 style="text-align: center">Removed</h2>
+        <ul style="text-align: left; font-size: 20px">
+            <li>The Unlock buttons from anywhere but the artifact list were remove.</li>
+            <li>Documentation options were deleted for now. I couldn't shake the feeling, that it caused serious issues
+                with message mappings for some reason.
+            </li>
+        </ul>
+        <hr>
+        <h2>2024.11.18 (Main)</h2>
+        <ul style="text-align: left; font-size: 20px">
+            <li>
+                Settings no longer need to be changed via JSON.
+                <br>
+                <div style="display: flex; align-items: center;">Select <img
+                        src="https://i.postimg.cc/KY2fBQYW/settings.png" style="max-height: 2em"> at the bottom left in
+                    the Integration Suite to change the settings.
+                </div>
+                The schema of the settings has been partially changed. During migration, your old configuration will
+                automatically be copied to the clipboard as a precaution.<br>
+                Mouse mappings now work better (hopefully).
+            </li>
+            <li>The tenant tag of an Integration Suite now also works without a logo.</li>
+            <li>An updated guide for the settings and features should be available in the Knowledge Base in the coming
+                weeks.
+            </li>
+        </ul>
+
+        <h2>2024.11.08 (Main)</h2>
+        <ul style="text-align: left; font-size: 20px">
+            <li>Artifact lists should now load on Integration Suites with EIC artifacts.</li>
+            <li>
+                Settings no longer need to be changed via JSON.
+                <br>
+                <div style="display: flex; align-items: center;">Select <img
+                        src="https://i.postimg.cc/KY2fBQYW/settings.png" style="max-height: 2em"> at the bottom left in
+                    the Integration Suite to change the settings.
+                </div>
+                The schema of the settings has been partially changed. During migration, your old configuration will
+                automatically be copied to the clipboard as a precaution.<br>
+                Mouse mappings now work better (hopefully).
+            </li>
+            <li>The tenant tag of an Integration Suite now also works without a logo.</li>
+            <li>An updated guide for the settings and features should be available in the Knowledge Base in the coming
+                weeks.
+            </li>
+        </ul>
+
+        <h2>Older (Main)</h2>
+        <ul style="text-align: left; font-size: 20px">
+            <li>Artifact lists will now also load if loading the API Proxies fails.</li>
+            <li>Artifact search based on locks is now available.
+                <ul>
+                    <li><i>:lock</i><br>Searches for all artifacts with locks.</li>
+                    <li><i>:lock-me</i><br>Shows only the locks of the logged-in user.</li>
+                    <li><i>:lock-<b>search term</b></i><br>Shows only the locks of users matching the search term.</li>
+                </ul>
+            </li>
+            <li>Search for an artifact/package by pattern<br>Case-insensitive. Spaces, underscores, hyphens,
+                parentheses, and square brackets are ignored in the artifact/package names and IDs.<br>These should also
+                be omitted in the RegEx.
+                <ul>
+                    <li><i>:rx-<b>search term</b></i></li>
+                    <li><i>:regex-<b>search term</b></i></li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+    <div id="planned-features-content" style="display: none;">
+        <div style="width: 100%; text-align: center; font-size: 24px"><span>Coming soon</span></div>
+    </div>
+</div>
+</body>
+
+<script src="update.js" charset="utf-8"></script>
+</html>

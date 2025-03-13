@@ -1,0 +1,195 @@
+.radialMenu {
+    position: absolute;
+    display: none;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+.radialMenu > * {
+    user-select: none
+}
+
+.radialMenu-item {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 50px;
+    font-size: 1.125rem;
+    position: absolute;
+    pointer-events: all;
+    cursor: pointer;
+    overflow: visible;
+    z-index: 68;
+    animation: adjustIn 0.2s ease-in-out;
+}
+
+@keyframes adjustIn {
+    0% {
+        transform: translate(0px, 0px);
+    }
+}
+
+.radialMenu-item:hover {
+    z-index: 70;
+}
+
+.radialMenu-action {
+    pointer-events: all;
+    cursor: pointer;
+}
+
+.radialMenu-item * {
+    pointer-events: inherit;
+}
+
+.radialEmpty, .radialEmpty * {
+    display: none !important;
+    pointer-events: none !important;
+}
+
+.radialReject * {
+    color: #aa0808;
+}
+.radialReject {
+    background-color: #ffd6e9 !important;
+    border-color: #ffd6e9 !important;
+}
+.radialReject:hover {
+    color: #aa0808;
+    background-color: #ffc1df !important;
+    border-color: #ffc1df !important;
+}
+
+.radialWarning * {
+    color: #b44f00;
+}
+.radialWarning {
+    background-color: #fff3b7 !important;
+    border-color: #ffea84 !important;
+}
+.radialWarning:hover {
+    color: #b44f00;
+    background-color: #ffee9e !important;
+    border-color: #ffee9e !important;
+}
+
+.radialAccept * {
+    color: #256f3a;
+}
+.radialAccept {
+    background-color: #ebf5cb !important;
+    border-color: #dbeda1 !important;
+}
+.radialAccept:hover {
+    color: #256f3a;
+    background-color: #e3f1b6 !important;
+    border-color: #e3f1b6 !important;
+}
+
+.radialDefault * {
+    color: #000D;
+}
+.radialDefault {
+    background-color: #ddd !important;
+    border-color: #ccc !important;
+}
+.radialDefault:hover {
+    color: #000D;
+    background-color: #ccc !important;
+    border-color: #ccc !important;
+}
+
+.radialDisabled * {
+    color: #888D;
+}
+.radialDisabled {
+    background-color: #ddd;
+    border-color: #ccc;
+}
+.radialDisabled:hover {
+    color: #888D;
+    background-color: #ccc;
+    border-color: #ccc;
+}
+
+.radialTooltip {
+    position: absolute;
+    top: 0;
+    left: 25px;
+    height: 100%;
+    background-color: inherit;
+    color: inherit;
+    padding: 0 0 0 20px;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    font-size: 1rem;
+    font-weight: bold;
+    opacity: 0;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.1s ease-in-out, opacity 0.1s ease-in-out;
+    z-index: 69;
+    overflow: visible;
+}
+.radialTooltip, .radialTooltip:after {
+    background-color: inherit;
+}
+.radialMenu-item.radialCenter:hover .radialTooltip {
+    visibility: visible;
+    transform: scaleX(1);
+    opacity: 1;
+    transition-delay: 150ms;
+    transition-property: transform, opacity;
+}
+
+.radialMenu-item.radialCenter:hover .radialTooltip:after {
+    content: '';
+    top: 0;
+    right: -25px;
+    width: 50px;
+    height: 100%;
+    border-radius: 50%;
+    position: absolute;
+    z-index: -1;
+}
+.radialMenu-item.radialCenter .radialTooltip:after {
+    content: '';
+    top: 0;
+    right: -25px;
+    width: 50px;
+    height: 100%;
+    border-radius: 50%;
+    position: absolute;
+    z-index: -1;
+}
+
+.radialMenuDetailDisplay {
+    background-color: #ddd;
+    border-color: #CCC;
+    border-style: solid;
+    box-shadow: #3a3a3a88 5px 5px 10px;
+    font-size: .9rem;
+    font-weight: bold;
+}
+
+.radialMenuDetailDisplay tr {
+}
+
+.radialMenuDetailDisplay tr:not(.detailDisplayHint) td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #f1f1f1;
+    vertical-align: center;
+    text-align: left;
+}
+
+.radialMenuDetailDisplay tr.detailDisplayHint td {
+    padding: 8px 12px;
+    vertical-align: bottom;
+    text-align: left;
+}
+
+.radialMenuDetailDisplay :is(a, a:visited) {
+    font-weight: bolder;
+    color: #333;
+}

@@ -1,0 +1,165 @@
+.disableScrollbars::-webkit-scrollbar {
+    background: transparent;
+    width: 0;
+}
+
+.disableScrollbars {
+    scrollbar-width: none;
+}
+
+#shell--sideNavigationMenu:has(> div > div > #__twine-shell--navigationList) {
+    width: inherit;
+}
+#shell--sideNavigationMenu:has(> div > div > #__twine-shell--navigationList:hover) {
+    width: max-content;
+}
+
+#__twine-shell--navigationList {
+    transition: width 0s 0.5s ease-in-out;
+}
+
+.noSelect {
+    user-select: none;
+}
+
+.alwaysOnTop {
+    z-index: 99;
+}
+
+.elementFadeIn { animation: fadeIn 0.3s; }
+
+.elementFadeOut {
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0s 0.3s, opacity 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+@keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+.disabledListItem {
+    pointer-events: none;
+    opacity: 0.5
+}
+
+.__twineArtifact-show:not(.__twineArtifact-searchDisqualify) {
+    display: flex !important;
+}
+
+:not([disabled]).rainbow > * {
+    font-weight: 700;
+    animation: rainbow 4.5s linear;
+    animation-iteration-count: infinite;
+}
+
+@keyframes rainbow{
+    100%,0%{ color: rgb(192,0,0); }
+    8%{ color: rgb(192,127,0); }
+    16%{ color: rgb(192,192,0); }
+    25%{ color: rgb(127,192,0); }
+    33%{ color: rgb(0,192,0); }
+    41%{ color: rgb(0,192,127); }
+    50%{ color: rgb(0,192,192); }
+    58%{ color: rgb(0,127,192); }
+    66%{ color: rgb(0,0,192); }
+    75%{ color: rgb(127,0,192); }
+    83%{ color: rgb(192,0,192); }
+    91%{ color: rgb(192,0,127); }
+}
+
+.diagram-note {
+    background-color: rgba(66, 180, 21, 0.7);
+    color: White;
+    border-radius: 5px;
+    font-family: Arial;
+    font-size: 12px;
+    padding: 5px;
+    min-height: 16px;
+    width: 50px;
+    text-align: center;
+}
+
+#__twine-staticElement-DiffDisplay {
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: #f1f1f1;
+    display: block;
+    position: absolute;
+    z-index: 70;
+    overflow: scroll
+}
+
+#__twine-staticElement-DiffDisplay-View {
+    padding: 10px;
+    margin-top: 85px
+}
+
+.toast-close {
+    padding-right: 10px;
+}
+
+.twineAccept .toast-close {
+    color: #256f3a;
+}
+.twineAccept {
+    border-radius: 10px;
+    color: #256f3a;
+    background: #ebf5cb;
+    border: #dbeda1;
+}
+
+.twineDefault .toast-close {
+    color: #000D;
+}
+.twineDefault {
+    border-radius: 10px;
+    color: #000D;
+    background: #ddd;
+    border: #ccc;
+}
+
+.twineReject .toast-close {
+    color: #aa0808;
+}
+.twineReject {
+    border-radius: 10px;
+    color: #aa0808;
+    background: #ffd6e9;
+    border: #ffd6e9;
+}
+
+
+.twineWarning .toast-close {
+    color: #b44f00;
+}
+.twineWarning {
+    border-radius: 10px;
+    color: #b44f00;
+    background: #fff3b7;
+    border: #ffea84
+}
+
+.overrideText {
+    width: inherit;
+    height: inherit;
+}
+.overrideBackground {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    text-align: center;
+    -webkit-transform: translate(-50%, -50%) rotate(30deg);
+    transform: translateX(-50%) translateY(-50%) rotate(30deg);
+    color: #F009;
+    line-height: normal;
+    font-size: large;
+    font-weight: bold;
+}
+
+.asideBackgroundTransition {
+    transition: background-color 0.3s ease-in-out;
+}

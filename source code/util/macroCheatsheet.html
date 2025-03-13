@@ -1,0 +1,296 @@
+<html>
+
+<head>
+    <title>Macro/Shortcut Cheatsheet</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            color: #1d2d3e;
+            background-color: #fff;
+        }
+
+        body > * {
+            width: 80%; /* Matches the width of the table */
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .headerSpan {
+            display: block; /* Makes the span a block element */
+            margin: 0 auto; /* Align it horizontally relative to the table */
+            text-align: left; /* Align the text to the left */
+            font-size: 18px;
+        }
+
+
+
+        input[type="text"] {
+            display: block;
+            margin: 20px auto;
+            padding: 10px;
+            width: 80%;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        table {
+            border-collapse: collapse;
+            margin: auto;
+            width: 80%;
+            background-color: #ddd;
+            padding: 50px;
+            border-radius: 5px;
+        }
+
+        th, td {
+            padding: 10px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ccc;
+        }
+
+        th {
+            background-color: #ddd;
+        }
+
+        tr:hover {
+            background-color: #ddd;
+        }
+
+    </style>
+</head>
+<body>
+<h1>Macro/Shortcut Cheatsheet</h1>
+<span class="headerSpan">You can create your own shortcuts by adding JSON objects to the customFolder list within the root, environments and tenants of your overrides.</span>
+<pre>
+                            {
+                                ... The rest of your overrides,
+                                "folders": {
+                                    "customFolder": [
+                                        {
+                                            "title": "Monitoring (Last 24h)",
+                                            "background": "{{constant(myBackgroundColor)}}",
+                                            "color": "#1d2d3e",
+                                            "url": "/shell/monitoring/Messages/%7B%22status%22%3A%22ALL%22,%22packageId%22%3A%22ALL%22,%22type%22%3A%22ALL%22,%22time%22%3A%22PAST24%22,%22useAdvancedFields%22%3Afalse%7D"
+                                        },
+                                        {
+                                            "dynamic": true,
+                                            "title": "Monitoring (Last Week)",
+                                            "url": "https://your-domain.com/{{constant(myConstant)}}"
+                                        },
+                                        {
+                                            "color": "#a00",
+                                            "macro": "{{var(subaccountBasePath)}}{{open($0/connectivity)}}",
+                                            "title": "Cloudconnector Entries"
+                                        }
+                                    ]
+                                }
+                            }
+</pre>
+<br>
+    <span class="headerSpan">There are three types of shortcuts:</span>
+    <ul class="headerSpan">
+        <li><b>url</b>: Specify a path or address. You can use this shortcut like you would with any other link (open, open in new tab or copy link).<br>If the URL is a path the current host is automatically prepended.</li>
+        <li><b>value</b>: Click this shortcut, to copy its value</li>
+        <li><b>macro</b>: Build a set of instructions to execute</li>
+    </ul>
+<br><p class="headerSpan"><span class="headerSpan">You can add some parameters to shortcuts of type url and value by setting <b>dynamic: true</b>.<br>Macros as well as colors of other shortcuts automatically have dynamic set to true.</span>
+    <span class="headerSpan">All parameters are case-sensitive and need to be enclosed by double curly braces <i>{{}}</i></span>
+    <span class="headerSpan">Whitespaces are not yet being trimmed, so please don't add any inside of parameters if they are not specifically part of it</span></p><br>
+<p class="headerSpan"><span>Some parameters support references to previous parameter outputs by null based index (e.g. $0, $1, etc...).</span><br><span>These references can only be used in macros.</span></p>
+<br>
+<span class="headerSpan">You can test your macros and dynamic values, by adding <i>eval: true</i> to them and pressing the wrench button on the bottom of the settings</span>
+<span class="headerSpan">Right now macros are really not well tested, but they work if built correctly.</span>
+<input
+        type="text"
+        id="filterInput"
+        placeholder="Search"
+/>
+<span class="headerSpan"><i><b>Fat values are required, italic values are variable/optional</b></i></span>
+<table id="dataTable">
+    <thead>
+    <tr>
+        <th>Parameter</th>
+        <th>Description</th>
+        <th>Examples</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td><b>constant(<i>id</i>)</b></td>
+        <td>
+            <p>Reads a value from your constants.<br>To define constants, create the object <i>constant</i> at your overrides root, environments or tenants element if it does not exist.<br>Values in tenants override values in environments and environments override values in the root.<br><i>Supports References</i></p>
+            <br>
+            <b>Returns: The constants value</b>
+        </td>
+        <td>
+            <pre>
+{
+    ... The rest of your overrides,
+    "constant": {
+        "someId": "someValue"
+    }
+}
+            </pre>
+            <p><b>constant(someId)</b><br>Gets the user defined constant</p>
+        </td>
+    </tr>
+    <tr>
+        <td><b>var(<i>id</i>)</b></td>
+        <td>
+            <p>Reads a value from a list of predefined variables.<br><i>Does not support references</i></p>
+
+            <p>
+                <button id="toggleSpoilerVariables">Toggle Spoiler</button>
+            </p>
+            <div id="spoilerContent" style="display: none;">
+                <ul>
+                    <li><b>subaccountBasePath</b>: Returns the BTP Cockpit path for the subaccount this tenant is running on</li>
+                    <li><b>monitoringBasePath</b>: Returns <u>/shell/monitoring/Messages/</u></li>
+                </ul>
+            </div>
+            <b>Returns: The variable value</b>
+        </td>
+        <td>
+            <p><b>var(monitoringBasePath)</b><br>Gets the Monitoring Base Path</p>
+        </td>
+    </tr>
+    <tr>
+        <td><b>date</b><i>(offsets|pattern)</i></td>
+        <td>
+            <p>Gets the current UTC Date/Time.<br><i>Does not support references yet</i></p>
+            <p>
+                <br>
+                <span>Optional: Add a comma separated list of offsets</span>
+                <ul>
+                    <li>last_<i>weekday</i>: Sets the dates value to last <i>weekday</i></li>
+                    <li>next_<i>weekday</i>: Sets the dates value to next <i>weekday</i></li>
+                    <li>D<i>yyyy-MM-dd</i>: Sets the dates value to the specified date</li>
+                    <li>T<i>hh:mm:ss</i>: Sets the dates time value to the specified time</li>
+                    <li><i>(+/-)day/hour/minute(s)</i>: Adds/substracts the specified value from the date</li>
+                </ul>
+            </p>
+            <br>
+            <p>
+                <span>Optional: Provide a pattern to output the date in a format, other than an ISO String</span>
+            <ul>
+                <li>Supports <b>yyyy</b>, <b>MM</b>, <b>dd</b>, <b>HH</b>, <b>hh</b>, <b>mm</b>, <b>sss</b> and <b>ss</b></li>
+            </ul>
+            <br>
+            <br>
+            <b>Returns: The calculated date string</b>
+            </p>
+        </td>
+        <td>
+            <ul>
+                <li><b>date</b><br>Gets the current date/time as an ISO String</li>
+                <li><b>date(|yyyyMMddhhmmss)</b><br>Gets the current date/time and transforms it into the specified format</li>
+                <li><b>date(D2024-12-31)</b><br>Gets the current date/time and changes the date value to 2024-12-31, keeping the time value</li>
+                <li><b>date(last_monday,T16:00:00|yyyy-MM-dd)</b><br>Gets the current date/time and changes the date to the last monday at 16:00:00 in the user's timezone and transforms it into the specified format</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td><b>pingCC</b><i>(id)</i></td>
+        <td>
+            <p>Tries to ping the specified or determined Cloud Connector.<br><i>Supports references</i></p>
+            <br>
+            <b>Returns: true/false</b>
+        </td>
+        <td>
+            <ul>
+                <li><b>pingCC</b><br>Tries to get the location id from the Location ID field of the current IFlows selected adapter</li>
+                <li><b>pingCC()</b><br>Pings an empty Cloud Connector</li>
+                <li><b>pingCC(MyCC)</b><br>Pings Cloud Connector 'MyCC'</li>
+                <li><b>pingCC($0)</b><br>Pings Cloud Connector with the value returned from the first macro parameter</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td><b>if(<i>condition</i></b><i>,displayName</i><b>)</b></td>
+        <td>
+            <p>Tries to ping the specified or determined Cloud Connector.<br><i>Supports references</i></p>
+            <br>
+            <b>Returns: true</b> if condition is met, otherwise <b>"fails"</b> the macro execution
+        </td>
+        <td>
+            <ul>
+                <li><b>if(true=$1)</b><br>Checks if the output of the second parameter was equal to 'true'</li>
+                <li><b>if($1$4=myValue,myCondition)</b><br>Checks if the output of the second and fifth parameter concatenated was equal to 'myValue'. If the outcome was false, shows the user, that condition 'myCondition' was not met</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td><b>delay(<i>timeInMs</i>)</b></td>
+        <td>
+            <p>Delays macro execution by the specified amount of milliseconds.<br><i>Supports references</i></p>
+            <br>
+            <b>Returns: true/false</b>
+        </td>
+        <td>
+            <ul>
+                <li><b>delay(1000)</b><br>Delays execution by 1 second</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td><b>store(<i>tokenName,tokenValue</i>)</b></td>
+        <td>
+            <p>Stores the calculated value in a variable. Variables are deleted when reloading the tab<br><i>tokenValue supports references</i></p>
+            <br>
+            <b>Returns: The token name</b>
+        </td>
+        <td>
+            <ul>
+                <li><b>store(myVariable,ABC$1GHI)</b><br>Stores the resolved value in 'myVariable'</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td><b>read(<i>tokenName</i>)</b></td>
+        <td>
+            <p>Read the value stored in the specified token. Variables are deleted when reloading the tab<br><i>Does not support references</i></p>
+            <br>
+            <b>Returns: The variable value</b>
+        </td>
+        <td>
+            <ul>
+                <li><b>read(myVariable)</b><br>Reads the value in 'myVariable'</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td><b>open(<i>url</i>)</b></td>
+        <td>
+            <p>Opens the calculated address in a new tab<br><i>Supports references</i></p>
+            <br>
+            <b>Returns: The calculated url</b>
+        </td>
+        <td>
+            <ul>
+                <li><b>open($0/$1)</b><br>Opens the resolved address in a new tab</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td><b>navigate(<i>url</i>)</b></td>
+        <td>
+            <p>Opens the calculated address in the same tab<br><i>Supports references</i></p>
+            <br>
+            <b>Returns: Termination</b>. The user has to confirm the action by clicking on the notification prompt
+        </td>
+        <td>
+            <ul>
+                <li><b>open($0/$1)</b><br>Opens the resolved address in the same tab</li>
+            </ul>
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+<script src="cheatsheet.js" charset="utf-8"></script>
+</body>
+</html>
