@@ -31,7 +31,6 @@ Enable/disable any of the following shortcuts to be added to the bottom of the s
 - Locks
 - Connectivity Test
 - Message Usage
-- **TBD** Check the existing artifacts against configurable conventions *(Need to check if this is feaasible)*
 
 ## Installation
 
@@ -50,11 +49,11 @@ It may work on firefox and should work on any other Chromium based browser.
 ## Configuration
 - To edit your configuration, open any integration suite and click on the "Twine Settings" button at the bottom left of the side navigation
 
-## Bugs
-- Lots
+## Known Issues
+- As many as there are atoms in the observable universe
 
 ## Change Log
-- Empty
+- Coming at some point
 
 ## Privacy Policy
 
