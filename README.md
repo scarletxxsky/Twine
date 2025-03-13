@@ -14,36 +14,41 @@ This way you can also ensure, that there is nothing fishy about it, other than t
 
 ## Features
 
-### Shortcuts for days
+### Shortcuts
 
-#### Frequently used views
+#### Lists
+Instantly access all integration artifacts, API proxies and secure materials from pretty much anywhere in the Integration Suite 
+
+#### Frequently used pages
 Enable/disable any of the following shortcuts to be added to the bottom of the sidebar
-- Open the current view in a number of different stages (DEV, QA, PROD, etc.) (Same or New Tab)
-- Credentials (Same or New Tab)
-- Monitoring (Same or New Tab)
-- Certificates (Same or New Tab)
-- Locks (Same or New Tab)
-- Datastores (Same or New Tab)
-- JMS Queues (Same or New Tab)
-- Connectivity Test (Same or New Tab)
+- Open the current page on another stage (E.g. Dev, Qa, Prod)
+- Monitoring
+- Credentials
+- Certificates
+- Datastores
+- JMS Queues
+- Runtime Artifacts
+- Locks
+- Connectivity Test
+- Message Usage
 - **TBD** Check the existing artifacts against configurable conventions *(Need to check if this is feaasible)*
-
-#### Designtime artifacts and APIs
-To be continued
 
 ## Installation
 
 There are no plans to add explicit support for a browser, other than Chrome.
 It may work on firefox and should work on any other Chromium based browser.
 
-You need Google Chrome to install this plugin. I tested it with version 100. I assume that older versions will work too.
-There are two options to install this plugin:
+You need Google Chrome to install this plugin.
 
 Add the extension via the Chrome Web Store
-- [Chrome Web Store](https://chrome.google.com/webstore/detail/sap-cpi-helper/epoggeaemnkacpinjfgccbjakglngkpb)
+- [Chrome Web Store](https://chromewebstore.google.com/detail/twine/aachbobnhpbjdieoljpkmllonipnalne)
+
+If you would like to have "early access" to even more unstable features than the released ones.
+Be aware that this version may include features that are pretty much untested and a potential danger to your Integration Suite's stability and that your configuration may frequently break.
+- [Chrome Web Store](https://chromewebstore.google.com/detail/twine-fast-track-build/mgblhibgmplacfjmhggjopmnekdeabkn)
 
 ## Configuration
-- TBD
+- To edit your configuration, open any integration suite and click on the "Twine Settings" button at the bottom left of the side navigation
 
 ## Bugs
 - Lots
@@ -53,10 +58,9 @@ Add the extension via the Chrome Web Store
 
 ## Privacy Policy
 
-Twine internally uses some of your data, just to work properly. 
+Twine internally has access to some of your data, just to work properly. 
 Examples include:
-- Your E-Mail address (or S-User, I guess)
-- Session data (Cookies, CSRF-Tokens)
+- Session data (Cookies, CSRF-Tokens, Your E-Mail Address)
 
-This data will never be used other than for it's intended purposes (i.e. functioning)
+This will only ever be used for it's intended purposes (i.e. providing Twine's functionality)
 The Chrome Web Store may collect additional data, which I cannot do anything about, unfortunately.
